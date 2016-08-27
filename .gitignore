@@ -38,3 +38,13 @@ captures/
 
 # Keystore files
 *.jks
+
+# Project files
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
