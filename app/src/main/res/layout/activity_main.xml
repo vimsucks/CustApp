@@ -16,8 +16,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:hint="学号"
-        android:text="2015002327"
-        android:inputType="text"/>
+        android:text="2015002327" />
 
     <EditText
         android:id="@+id/password_edit_text"

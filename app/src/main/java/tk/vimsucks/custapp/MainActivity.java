@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
         outputTextView = (TextView)findViewById(R.id.output_text_view);
         usernameEditText = (EditText)findViewById(R.id.username_edit_text);
         passwordEditText = (EditText)findViewById(R.id.password_edit_text);
-        stu = new CustStu(usernameEditText.getText().toString(), passwordEditText.getText().toString());
+        stu = new CustStu();
         outputTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
     }
 
@@ -63,10 +63,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 startButton.setClickable(false);
-                stu.login();
+                stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString());
                 outputMsg(stu.temp1);
-                outputMsg(stu.temp2);
-                outputMsg(stu.temp3);
+                //outputMsg(stu.temp2);
+                //outputMsg(stu.temp3);
                 startButton.setClickable(true);
             }
         }).start();

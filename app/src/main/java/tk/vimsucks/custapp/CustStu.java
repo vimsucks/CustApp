@@ -4,6 +4,7 @@ import android.app.Activity;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,16 +60,16 @@ public class CustStu {
     private Request request;
     private Response response;
 
-    public CustStu(String usrName, String passwd) {
-        username = usrName;
-        password = passwd;
+    public CustStu() {
     }
 
     private void sysLog(String log) {
         System.out.println(log);
     }
 
-    public boolean login() {
+    public boolean login(String usrName, String passwd) {
+        username = usrName;
+        password = passwd;
         try {
             String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
@@ -103,11 +104,17 @@ public class CustStu {
             temp2 = html;
             response.body().close();
             doc = Jsoup.parse(html);
-            String stuName = doc.getElementById("StudentNameValueLabel").text();
-            temp1 = stuName;
+            Element nameEle = doc.getElementById("StudentNameValueLabel");
+            if (nameEle == null) {
+                sysLog("Login failed");
+                return false;
+            } else {
+                String stuName = nameEle.text();
+                temp1 = stuName;
+                return true;
+            }
         } catch (IOException e) {
-
+            return true;
         }
-        return true;
     }
 }
