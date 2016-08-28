@@ -64,7 +64,9 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 startButton.setClickable(false);
                 stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString());
+                stu.getClassTable();
                 outputMsg(stu.temp1);
+                outputMsg("233");
                 //outputMsg(stu.temp2);
                 //outputMsg(stu.temp3);
                 startButton.setClickable(true);

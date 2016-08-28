@@ -5,10 +5,10 @@ import android.app.Activity;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -53,7 +53,7 @@ public class CustStu {
                         }
                     }
                     return matchingCookies;
-                }                    })
+                }})
             .build();
     private Request.Builder requestBuilder = new Request.Builder()
             .addHeader("User-Agent", "Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36");
@@ -64,7 +64,11 @@ public class CustStu {
     }
 
     private void sysLog(String log) {
-        System.out.println(log);
+        System.out.print(log);
+    }
+
+    private void sysLog(Integer log) {
+        System.out.print(log);
     }
 
     public boolean login(String usrName, String passwd) {
@@ -74,6 +78,7 @@ public class CustStu {
             String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
                     .url(loginUrl)
+                    .get()
                     .build();
             response = httpClient.newCall(request).execute();
             String html = response.body().string();
@@ -106,15 +111,47 @@ public class CustStu {
             doc = Jsoup.parse(html);
             Element nameEle = doc.getElementById("StudentNameValueLabel");
             if (nameEle == null) {
-                sysLog("Login failed");
+                sysLog("Login failed\n");
                 return false;
             } else {
+                sysLog("Login success\n");
                 String stuName = nameEle.text();
                 temp1 = stuName;
                 return true;
             }
         } catch (IOException e) {
             return true;
+        }
+    }
+
+    public void getClassTable() {
+        String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/PersonalCourses.aspx?role=student";
+        try {
+            request = requestBuilder
+                    .url(classUrl)
+                    .get()
+                    .build();
+            response = httpClient.newCall(request).execute();
+            String html = response.body().string();
+            Document doc = Jsoup.parse(html);
+            Elements tables = doc.getElementsByTag("table");
+            tables = new Elements(tables.subList(1, tables.size() - 1));
+            temp1 = tables.text();
+            for (Element table : tables) {
+                Elements tds = table.getElementsByTag("td");
+                Element td1 = tds.first();
+                if (td1.text().trim().length() == 1) {
+                    continue;
+                } else {
+                    tds = new Elements(tds.subList(0, 4));
+                    for (Element td : tds) {
+                        sysLog(td.text() + " ");
+                    }
+                    sysLog("\n");
+                }
+            }
+        } catch (IOException e) {
+
         }
     }
 }
