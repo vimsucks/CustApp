@@ -1,7 +1,5 @@
 package tk.vimsucks.custapp;
 
-import android.app.Activity;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -25,9 +23,9 @@ import okhttp3.Response;
 
 public class CustStu {
 
-    Activity activity;
     private String username;
     private String password;
+    private ArrayList<CustClass> classTable = new ArrayList<>();
     public String temp1 = " ";
     public String temp2 = " ";
     public String temp3 = " ";
@@ -136,20 +134,34 @@ public class CustStu {
             Document doc = Jsoup.parse(html);
             Elements tables = doc.getElementsByTag("table");
             tables = new Elements(tables.subList(1, tables.size() - 1));
-            temp1 = tables.text();
+            Integer i = 0;
             for (Element table : tables) {
                 Elements tds = table.getElementsByTag("td");
                 Element td1 = tds.first();
                 if (td1.text().trim().length() == 1) {
+                    ++i;
                     continue;
                 } else {
                     tds = new Elements(tds.subList(0, 4));
+                    /*
                     for (Element td : tds) {
                         sysLog(td.text() + " ");
                     }
+                    sysLog(i % 7 + 1);
+                    sysLog(" ");
+                    sysLog(i / 7 + 1);
                     sysLog("\n");
+                    */
+                    ++i;
+                    classTable.add(new CustClass(tds.get(0).text(),
+                                                 tds.get(1).text(),
+                                                 tds.get(2).text(),
+                                                 tds.get(3).text(),
+                                                 i % 7 + 1,
+                                                 i / 7 + 1));
                 }
             }
+            //sysLog(i);
         } catch (IOException e) {
 
         }
