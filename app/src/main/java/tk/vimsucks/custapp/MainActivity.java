@@ -1,12 +1,14 @@
 package tk.vimsucks.custapp;
 
+import android.content.Context;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
@@ -20,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     TextView outputTextView;
     EditText usernameEditText;
     EditText passwordEditText;
+    boolean isLogin;
     private Handler outputHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -36,6 +39,12 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private Handler outputClearHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            outputTextView.setText("");
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,11 +56,11 @@ public class MainActivity extends AppCompatActivity {
         outputTextView = (TextView)findViewById(R.id.output_text_view);
         usernameEditText = (EditText)findViewById(R.id.username_edit_text);
         passwordEditText = (EditText)findViewById(R.id.password_edit_text);
-        stu = new CustStu();
+        stu = new CustStu(this);
         outputTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
     }
 
-    public void start(View view) {
+    public void login(View view) {
         new Thread(new Runnable() {
 
             private void outputMsg(String obj) {
@@ -62,15 +71,65 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void run() {
-                startButton.setClickable(false);
-                stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString());
-                stu.getClassTable();
-                outputMsg(stu.temp1);
-                outputMsg("233");
-                //outputMsg(stu.temp2);
-                //outputMsg(stu.temp3);
-                startButton.setClickable(true);
+                EditText weekEditText = (EditText)findViewById(R.id.week_edit_text);
+                Integer week = Integer.parseInt(weekEditText.getText().toString());
+                if (stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString())) {
+                    stu.getCurrentWeek(week);
+                    stu.getClassTable();
+                    stu.getWeekClassTable();
+                    outputClearHandler.sendMessage(new Message());
+                    stu.updateClassOutput(outputHandler);
+                    //startButton.setClickable(false);
+                    isLogin = true;
+                } else {
+                    outputMsg("Login failed");
+                }
             }
         }).start();
+        View currentView = this.getCurrentFocus();
+        if (currentView != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(currentView.getWindowToken(), 0);
+        }
+    }
+
+    public void weekMinus(View view) {
+        EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
+        Integer week = Integer.parseInt(weekEditText.getText().toString());
+        if (week > 1) {
+            --week;
+            weekEditText.setText(String.valueOf(week));
+        }
+        if (isLogin) {
+            stu.getCurrentWeek(week);
+            stu.getWeekClassTable();
+            outputClearHandler.sendMessage(new Message());
+            stu.updateClassOutput(outputHandler);
+        } else {
+            Message msg = new Message();
+            msg.obj = "Please login first!";
+            outputHandler.sendMessage(msg);
+        }
+    }
+
+
+    public void weekPlus(View view) {
+        EditText weekEditText = (EditText)findViewById(R.id.week_edit_text);
+        Integer week = Integer.parseInt(weekEditText.getText().toString());
+        if (week < 20) {
+            ++week;
+            weekEditText.setText(String.valueOf(week));
+        }
+        if (isLogin) {
+            stu.getCurrentWeek(week);
+            stu.getWeekClassTable();
+            outputClearHandler.sendMessage(new Message());
+            stu.updateClassOutput(outputHandler);
+        } else {
+            Message msg = new Message();
+            msg.obj = "Please login first!";
+            outputHandler.sendMessage(msg);
+        }
     }
 }
+

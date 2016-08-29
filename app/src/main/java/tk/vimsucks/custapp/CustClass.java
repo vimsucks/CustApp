@@ -7,15 +7,16 @@ import java.util.regex.Pattern;
 
 public class CustClass {
 
-    private String className;
-    private String classTeacher;
-    private String classLocation;
-    private String classTime;
-    private Integer weekday;
-    private Set<Integer> weeks = new TreeSet<>();
-    private boolean isOdd = false;
-    private boolean isEven = false;
-    private Integer nth;
+    public String className;
+    public String classTeacher;
+    public String classLocation;
+    public String classTime;
+    public Integer weekday;
+    public Integer nth;
+    public Set<Integer> weeks = new TreeSet<>();
+    public boolean isOdd = false;
+    public boolean isEven = false;
+    public boolean isHalf = false;
 
     public CustClass(String clsName, String clsTeacher, String clsLocation, String clsTime,
                      Integer wkday, Integer n) {
@@ -25,10 +26,10 @@ public class CustClass {
         parseClassTime(clsTime);
         weekday = wkday;
         nth = n;
-        printWeeks();
+        //printWeeks();
     }
 
-    private void parseClassTime(String clsTime) {
+    public void parseClassTime(String clsTime) {
         String pattern = "(\\d+-\\d+)";
         Pattern r = Pattern.compile(pattern);
         Matcher m = r.matcher(clsTime);
@@ -67,14 +68,23 @@ public class CustClass {
             Integer i = Integer.parseInt(match);
             weeks.add(i);
         }
+        r = Pattern.compile("前一节");
+        m = r.matcher(clsTime);
+        if (m.find()) {
+            isHalf = true;
+        }
     }
 
-    private void printWeeks() {
+    public void printWeeks() {
         System.out.print(className);
         for (Integer i : weeks) {
             System.out.print(",");
             System.out.print(i);
         }
+        System.out.print("=");
+        System.out.print(weekday);
+        System.out.print(" ");
+        System.out.print(nth);
         System.out.println();
     }
 }

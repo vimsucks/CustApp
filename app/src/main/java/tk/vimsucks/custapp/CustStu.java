@@ -1,5 +1,9 @@
 package tk.vimsucks.custapp;
 
+import android.app.Activity;
+import android.os.Handler;
+import android.os.Message;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -7,10 +11,14 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
@@ -26,9 +34,12 @@ public class CustStu {
     private String username;
     private String password;
     private ArrayList<CustClass> classTable = new ArrayList<>();
+    private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     public String temp1 = " ";
     public String temp2 = " ";
     public String temp3 = " ";
+    private Integer currentWeek;
+    private Activity activity;
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -58,7 +69,8 @@ public class CustStu {
     private Request request;
     private Response response;
 
-    public CustStu() {
+    public CustStu(Activity act) {
+        activity = act;
     }
 
     private void sysLog(String log) {
@@ -123,7 +135,11 @@ public class CustStu {
     }
 
     public void getClassTable() {
-        String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/PersonalCourses.aspx?role=student";
+        if (!classTable.isEmpty()) {
+            return;
+        }
+        String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
+        //String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/PersonalCourses.aspx?role=student";
         try {
             request = requestBuilder
                     .url(classUrl)
@@ -132,7 +148,71 @@ public class CustStu {
             response = httpClient.newCall(request).execute();
             String html = response.body().string();
             Document doc = Jsoup.parse(html);
-            Elements tables = doc.getElementsByTag("table");
+            //Elements tables = doc.getElementsByTag("table");
+            Elements contentCells = doc.getElementsByClass("ContentCell");
+            Integer i = 0;
+            for (Element contentCell : contentCells) {
+                ++i;
+                Elements tables = contentCell.getElementsByTag("table");
+                if (tables.size() > 1) {
+                    tables.remove(0);
+                    for (Element table : tables) {
+                        Elements tds = table.getElementsByTag("td");
+                        if (tds.first().text().trim().length() <= 1) {
+                            continue;
+                        } else {
+                            Elements tdsAfter = new Elements();
+                            for (Element td : tds) {
+                                if (td.text().trim().length() > 1) {
+                                    tdsAfter.add(td);
+                                }
+                            }
+                            tdsAfter = new Elements(tdsAfter.subList(0, 4));
+                            /*
+                            for (Element td : tdsAfter) {
+                                System.out.print(td.text() + " ");
+                            }
+                            */
+                            classTable.add(new CustClass(tdsAfter.get(0).text(),
+                                    tdsAfter.get(1).text(),
+                                    tdsAfter.get(2).text(),
+                                    tdsAfter.get(3).text(),
+                                    i % 7 == 0 ? 7 : i % 7,
+                                    i % 7 == 0 ? i / 7 : i / 7 + 1));
+                            //System.out.print("\n");
+                            //System.out.print(tdsAfter.size());
+                        }
+                    }
+                } else {
+                    Element table = tables.first();
+                    Elements tds = table.getElementsByTag("td");
+                    if (tds.first().text().trim().length() <= 1) {
+                        continue;
+                    } else {
+                        Elements tdsAfter = new Elements();
+                        for (Element td : tds) {
+                            if (td.text().trim().length() > 1) {
+                                tdsAfter.add(td);
+                            }
+                        }
+                        tdsAfter = new Elements(tdsAfter.subList(0, 4));
+                        /*
+                        for (Element td : tdsAfter) {
+                            System.out.print(td.text() + " ");
+                        }
+                        */
+                        classTable.add(new CustClass(tdsAfter.get(0).text(),
+                                tdsAfter.get(1).text(),
+                                tdsAfter.get(2).text(),
+                                tdsAfter.get(3).text(),
+                                i % 7 == 0 ? 7 : i % 7,
+                                i % 7 == 0 ? i / 7 : i / 7 + 1));
+                        //System.out.print("\n");
+                        //System.out.print(tdsAfter.size());
+                    }
+                }
+            }
+            /*
             tables = new Elements(tables.subList(1, tables.size() - 1));
             Integer i = 0;
             for (Element table : tables) {
@@ -142,28 +222,76 @@ public class CustStu {
                     ++i;
                     continue;
                 } else {
-                    tds = new Elements(tds.subList(0, 4));
-                    /*
+                    //tds = new Elements(tds.subList(0, 4));
+                    Elements tdsAfter = new Elements();
                     for (Element td : tds) {
-                        sysLog(td.text() + " ");
+                        if (td.text().trim().length() > 1) {
+                            tdsAfter.add(td);
+                        }
                     }
-                    sysLog(i % 7 + 1);
-                    sysLog(" ");
-                    sysLog(i / 7 + 1);
-                    sysLog("\n");
-                    */
                     ++i;
-                    classTable.add(new CustClass(tds.get(0).text(),
-                                                 tds.get(1).text(),
-                                                 tds.get(2).text(),
-                                                 tds.get(3).text(),
-                                                 i % 7 + 1,
-                                                 i / 7 + 1));
+                    classTable.add(new CustClass(tdsAfter.get(0).text(),
+                                                 tdsAfter.get(1).text(),
+                                                 tdsAfter.get(2).text(),
+                                                 tdsAfter.get(3).text(),
+                                                 i % 7 == 0 ? 7 : i % 7,
+                                                 i % 7 == 0 ? i / 7 : i / 7 + 1));
+                    System.out.print(tds.get(0).text() + " ");
+                    System.out.print(tds.get(1).text() + " ");
+                    System.out.print(tds.get(2).text() + " ");
+                    System.out.print(tds.get(3).text() + " ");
+                    System.out.print("\n");
                 }
             }
-            //sysLog(i);
+            */
         } catch (IOException e) {
 
+        }
+    }
+
+    public void getCurrentWeek(Integer week) {
+        currentWeek = week;
+    }
+
+    public void getWeekClassTable() {
+        weekdayClassTable = new HashMap<>();
+        Integer i = 0;
+        for (CustClass cls : classTable) {
+            if (cls.weeks.contains(currentWeek)) {
+                if (!weekdayClassTable.containsKey(cls.weekday)) {
+                    weekdayClassTable.put(cls.weekday, new TreeSet<CustSimpClass>());
+                }
+                weekdayClassTable.get(cls.weekday).add(new CustSimpClass(cls, currentWeek));
+                ++i;
+            }
+        }
+
+        Object[] keys = weekdayClassTable.keySet().toArray();
+        Arrays.sort(keys);
+        for (Object k : keys) {
+            System.out.println(k);
+            for (CustSimpClass cls : weekdayClassTable.get(k)) {
+                cls.print();
+            }
+        }
+
+        System.out.println(i);
+    }
+
+    public void updateClassOutput(Handler handler) {
+        Message msg;
+        Object[] keys = weekdayClassTable.keySet().toArray();
+        Arrays.sort(keys);
+        for (Object key : keys) {
+            msg = new Message();
+            msg.obj = "星期" + key.toString();
+            handler.sendMessage(msg);
+            //System.out.println(key);
+            for (CustSimpClass cls : weekdayClassTable.get(key)) {
+                msg = new Message();
+                msg.obj = cls.getClassInfo();
+                handler.sendMessage(msg);
+            }
         }
     }
 }
