@@ -41,9 +41,11 @@ public class CustSimpClass implements Comparable<CustSimpClass> {
     public String getClassInfo() {
         String result = new String("第");
         if (isHalf) {
-            result += String.valueOf(nth + 0.5);
+            result += String.valueOf(2 * nth - 1);
         } else {
-            result += String.valueOf(nth);
+            result += String.valueOf(2 * nth - 1);
+            result += ",";
+            result += String.valueOf(2 * nth);
         }
         result += "节: " + className + " " + classLocation + " ";
         return  result;
