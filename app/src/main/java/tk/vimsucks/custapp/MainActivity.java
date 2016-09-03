@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -22,6 +23,8 @@ public class MainActivity extends AppCompatActivity {
     TextView outputTextView;
     EditText usernameEditText;
     EditText passwordEditText;
+    EditText currentWeekEditText;
+    Button exportButton;
     boolean isLogin;
     private Handler outputHandler = new Handler() {
         @Override
@@ -45,6 +48,12 @@ public class MainActivity extends AppCompatActivity {
             outputTextView.setText("");
         }
     };
+    public Handler makeToast = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Toast.makeText(MainActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
         outputTextView = (TextView)findViewById(R.id.output_text_view);
         usernameEditText = (EditText)findViewById(R.id.username_edit_text);
         passwordEditText = (EditText)findViewById(R.id.password_edit_text);
+        currentWeekEditText = (EditText)findViewById(R.id.current_edit_text);
+        exportButton = (Button)findViewById(R.id.export_button);
         stu = new CustStu(this);
         outputTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
     }
@@ -79,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
                     stu.getWeekClassTable();
                     outputClearHandler.sendMessage(new Message());
                     stu.updateClassOutput(outputHandler);
-                    //startButton.setClickable(false);
+                    startButton.setClickable(false);
+                    exportButton.setClickable(true);
                     isLogin = true;
                 } else {
                     outputMsg("Login failed");
@@ -130,6 +142,27 @@ public class MainActivity extends AppCompatActivity {
             msg.obj = "Please login first!";
             outputHandler.sendMessage(msg);
         }
+    }
+
+    public void export(View view) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                String currentWeek = currentWeekEditText.getText().toString();
+                if (currentWeek.length() == 0) {
+                    Message msg = new Message();
+                    msg.obj = "请输入本周是第几周!!";
+                    makeToast.sendMessage(msg);
+                } else {
+                    Message msg = new Message();
+                    msg.obj = "导入开始, 请稍等片刻...";
+                    makeToast.sendMessage(msg);
+                    stu.getCurrentWeek(Integer.parseInt(currentWeek));
+                    stu.writeCalendar(makeToast);
+                }
+            }
+        }).start();
     }
 }
 

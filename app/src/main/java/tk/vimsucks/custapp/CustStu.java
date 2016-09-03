@@ -1,8 +1,14 @@
 package tk.vimsucks.custapp;
 
-import android.app.Activity;
+import android.Manifest;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.CalendarContract;
+import android.text.format.Time;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,6 +18,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -39,16 +46,22 @@ public class CustStu {
     public String temp2 = " ";
     public String temp3 = " ";
     private Integer currentWeek;
-    private Activity activity;
+    private MainActivity activity;
+    private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31}; private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
+    private Integer[] endHours = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
+    private Integer[] startMinutes = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 55, 45};
+    private Integer[] endMinutes = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 40, 30};
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
                 //non-persistent CookieJar with an ACCEPT_ALL policy
                 private final Set<Cookie> cookieStore = new LinkedHashSet<>();
+
                 @Override
                 public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
                     cookieStore.addAll(cookies);
                 }
+
                 @Override
                 public List<Cookie> loadForRequest(HttpUrl url) {
                     List<Cookie> matchingCookies = new ArrayList<>();
@@ -62,14 +75,15 @@ public class CustStu {
                         }
                     }
                     return matchingCookies;
-                }})
+                }
+            })
             .build();
     private Request.Builder requestBuilder = new Request.Builder()
             .addHeader("User-Agent", "Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36");
     private Request request;
     private Response response;
 
-    public CustStu(Activity act) {
+    public CustStu(MainActivity act) {
         activity = act;
     }
 
@@ -94,8 +108,7 @@ public class CustStu {
             String html = response.body().string();
             response.body().close();
             Document doc = Jsoup.parse(html);
-            String viewState = doc.getElementById("__VIEWSTATE").attr("value");
-            String eventVal = doc.getElementById("__EVENTVALIDATION").attr("value");
+            String viewState = doc.getElementById("__VIEWSTATE").attr("value"); String eventVal = doc.getElementById("__EVENTVALIDATION").attr("value");
             RequestBody formBody = new FormBody.Builder()
                     .add("__VIEWSTATE", viewState)
                     .add("__EVENTVALIDATION", eventVal)
@@ -292,6 +305,108 @@ public class CustStu {
                 msg.obj = cls.getClassInfo();
                 handler.sendMessage(msg);
             }
+        }
+    }
+
+    public void writeCalendar(Handler handler) {
+        //TODO: Create a Calendar named "课程表"
+        String calendarURL = "content://com.android.calendar/calendars";
+        String calID = "";
+        Cursor userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+        if (activity.getPackageManager().PERMISSION_GRANTED != activity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, activity.getPackageName())) {
+            Message msg = new Message();
+            msg.obj = "请赋予本APP写入日历的权限!";
+            handler.sendMessage(msg);
+            if (Build.VERSION.SDK_INT >= 23) {
+                activity.requestPermissions(new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
+            }
+            return;
+        }
+        if (userCursor.getCount() < 1) {
+            Message msg = new Message();
+            msg.obj = "请在系统日历APP中添加一个新账户!";
+            handler.sendMessage(msg);
+            return;
+        }
+        if (userCursor.getCount() > 0) {
+            userCursor.moveToFirst();
+        }
+        calID = userCursor.getString(userCursor.getColumnIndex("_id"));
+        Integer i = 0;
+        for (CustClass cls : classTable) {
+            writeSingleClass(cls, calID, i++, handler);
+        }
+        Message msg = new Message();
+        msg.obj = "导入完成";
+        handler.sendMessage(msg);
+    }
+    public void writeSingleClass(CustClass cls, String calID, Integer colorIndex, Handler handler) {
+        String calendarEventURL = "content://com.android.calendar/events";
+        String calendarReminderURL = "content://com.android.calendar/reminders";
+        Integer startHour;
+        Integer startMinute;
+        Integer endHour;
+        Integer endMinute;
+        if (cls.isHalf) {
+            startHour = startHours[cls.nth * 2 - 1];
+            startMinute = startMinutes[cls.nth * 2 - 1];
+            endHour = endHours[cls.nth * 2 - 1];
+            endMinute = endMinutes[cls.nth * 2 - 1];
+        } else {
+            startHour = startHours[cls.nth * 2 - 1];
+            startMinute = startMinutes[cls.nth * 2 - 1];
+            endHour = endHours[cls.nth * 2];
+            endMinute = endMinutes[cls.nth * 2];
+        }
+        //System.out.println(cls.className);
+        ContentValues event = new ContentValues();
+        event.put(CalendarContract.Events.TITLE, cls.className);
+        event.put(CalendarContract.Events.DESCRIPTION, "教师: " + cls.classTeacher);
+        event.put(CalendarContract.Events.EVENT_LOCATION, cls.classLocation);
+        event.put(CalendarContract.Events.CALENDAR_ID, calID);
+
+        Calendar current = Calendar.getInstance();
+        Integer year = current.get(Calendar.YEAR);
+        if (year % 100 != 0 && year % 4 == 0) {
+            monthDays[2] = 29;
+        } else if (year % 400 == 0) {
+            monthDays[2] = 29;
+        }
+        Integer month = current.get(Calendar.MONTH);
+        Integer day = current.get(Calendar.DATE);
+        Integer currentWeekday = current.get(Calendar.DAY_OF_WEEK);
+        Integer clsWeekday = cls.weekday;
+        day += (clsWeekday - currentWeekday + 1);
+        Integer lastWeek = 0;
+        for (Integer week : cls.weeks) {
+            Integer wk = week - lastWeek;
+            lastWeek = week;
+            day += wk * 7;
+            Integer mnDay = monthDays[month];
+            if (mnDay < day) {
+                day -= mnDay;
+                month += 1;
+                if (month == 12) {
+                    month = 0;
+                }
+            }
+            //System.out.println(String.valueOf(month + 1) + "月" + String.valueOf(day) + "日");
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(year, month, day, startHour, startMinute);
+            long start = calendar.getTime().getTime();
+            calendar.set(year, month, day, endHour, endMinute);
+            long end = calendar.getTime().getTime();
+            event.put(CalendarContract.Events.DTSTART, start);
+            //event.put(CalendarContract.Events.EVENT_COLOR, colors[colorIndex]);
+            event.put(CalendarContract.Events.DTEND, end);
+            event.put(CalendarContract.Events.HAS_ALARM, 1);
+            event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
+            Uri newEvent = activity.getContentResolver().insert(Uri.parse(calendarEventURL), event);
+            long id = Long.parseLong(newEvent.getLastPathSegment());
+            ContentValues values = new ContentValues();
+            values.put("event_id", id);
+            values.put("minutes", 10);
+            activity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
         }
     }
 }
