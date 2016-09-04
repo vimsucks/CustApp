@@ -60,109 +60,110 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         setContentView(R.layout.activity_main);
+        stu = new CustStu(this);
+        initViews();;
+    }
+
+    private void initViews() {
         startButton = (Button) findViewById(R.id.start_button);
         outputScrollView = (ScrollView)findViewById(R.id.output_scroll_view);
         outputTextView = (TextView)findViewById(R.id.output_text_view);
+        outputTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
         usernameEditText = (EditText)findViewById(R.id.username_edit_text);
         passwordEditText = (EditText)findViewById(R.id.password_edit_text);
         currentWeekEditText = (EditText)findViewById(R.id.current_edit_text);
         exportButton = (Button)findViewById(R.id.export_button);
-        stu = new CustStu(this);
-        outputTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
     }
 
-    public void login(View view) {
-        new Thread(new Runnable() {
+    public void onClick(View view) {
+        if (view.getId() == R.id.start_button) {
+            new Thread(new Runnable() {
 
-            private void outputMsg(String obj) {
+                private void outputMsg(String obj) {
+                    Message msg = new Message();
+                    msg.obj = obj;
+                    outputHandler.sendMessage(msg);
+                }
+
+                @Override
+                public void run() {
+                    EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
+                    Integer week = Integer.parseInt(weekEditText.getText().toString());
+                    if (stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString())) {
+                        stu.getCurrentWeek(week);
+                        stu.getClassTable();
+                        stu.getWeekClassTable();
+                        outputClearHandler.sendMessage(new Message());
+                        stu.updateClassOutput(outputHandler);
+                        startButton.setClickable(false);
+                        exportButton.setClickable(true);
+                        isLogin = true;
+                    } else {
+                        outputMsg("Login failed");
+                    }
+                }
+            }).start();
+
+            // Auto scroll to the bottom when text is updated
+            View currentView = this.getCurrentFocus();
+            if (currentView != null) {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(currentView.getWindowToken(), 0);
+            }
+        } else if (view.getId() == R.id.week_minus_button) {
+            EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
+            Integer week = Integer.parseInt(weekEditText.getText().toString());
+            if (week > 1) {
+                --week;
+                weekEditText.setText(String.valueOf(week));
+            }
+            if (isLogin) {
+                stu.getCurrentWeek(week);
+                stu.getWeekClassTable();
+                outputClearHandler.sendMessage(new Message());
+                stu.updateClassOutput(outputHandler);
+            } else {
                 Message msg = new Message();
-                msg.obj = obj;
+                msg.obj = "Please onClick first!";
                 outputHandler.sendMessage(msg);
             }
-
-            @Override
-            public void run() {
-                EditText weekEditText = (EditText)findViewById(R.id.week_edit_text);
-                Integer week = Integer.parseInt(weekEditText.getText().toString());
-                if (stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString())) {
-                    stu.getCurrentWeek(week);
-                    stu.getClassTable();
-                    stu.getWeekClassTable();
-                    outputClearHandler.sendMessage(new Message());
-                    stu.updateClassOutput(outputHandler);
-                    startButton.setClickable(false);
-                    exportButton.setClickable(true);
-                    isLogin = true;
-                } else {
-                    outputMsg("Login failed");
-                }
+        } else if (view.getId() == R.id.week_plus_button) {
+            EditText weekEditText = (EditText)findViewById(R.id.week_edit_text);
+            Integer week = Integer.parseInt(weekEditText.getText().toString());
+            if (week < 20) {
+                ++week;
+                weekEditText.setText(String.valueOf(week));
             }
-        }).start();
-        View currentView = this.getCurrentFocus();
-        if (currentView != null) {
-            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(currentView.getWindowToken(), 0);
-        }
-    }
-
-    public void weekMinus(View view) {
-        EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
-        Integer week = Integer.parseInt(weekEditText.getText().toString());
-        if (week > 1) {
-            --week;
-            weekEditText.setText(String.valueOf(week));
-        }
-        if (isLogin) {
-            stu.getCurrentWeek(week);
-            stu.getWeekClassTable();
-            outputClearHandler.sendMessage(new Message());
-            stu.updateClassOutput(outputHandler);
-        } else {
-            Message msg = new Message();
-            msg.obj = "Please login first!";
-            outputHandler.sendMessage(msg);
-        }
-    }
-
-
-    public void weekPlus(View view) {
-        EditText weekEditText = (EditText)findViewById(R.id.week_edit_text);
-        Integer week = Integer.parseInt(weekEditText.getText().toString());
-        if (week < 20) {
-            ++week;
-            weekEditText.setText(String.valueOf(week));
-        }
-        if (isLogin) {
-            stu.getCurrentWeek(week);
-            stu.getWeekClassTable();
-            outputClearHandler.sendMessage(new Message());
-            stu.updateClassOutput(outputHandler);
-        } else {
-            Message msg = new Message();
-            msg.obj = "Please login first!";
-            outputHandler.sendMessage(msg);
-        }
-    }
-
-    public void export(View view) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                String currentWeek = currentWeekEditText.getText().toString();
-                if (currentWeek.length() == 0) {
-                    Message msg = new Message();
-                    msg.obj = "请输入本周是第几周!!";
-                    makeToast.sendMessage(msg);
-                } else {
-                    Message msg = new Message();
-                    msg.obj = "导入开始, 请稍等片刻...";
-                    makeToast.sendMessage(msg);
-                    stu.getCurrentWeek(Integer.parseInt(currentWeek));
-                    stu.writeCalendar(makeToast);
-                }
+            if (isLogin) {
+                stu.getCurrentWeek(week);
+                stu.getWeekClassTable();
+                outputClearHandler.sendMessage(new Message());
+                stu.updateClassOutput(outputHandler);
+            } else {
+                Message msg = new Message();
+                msg.obj = "Please onClick first!";
+                outputHandler.sendMessage(msg);
             }
-        }).start();
+        } else if (view.getId() == R.id.export_button) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    String currentWeek = currentWeekEditText.getText().toString();
+                    if (currentWeek.length() == 0) {
+                        Message msg = new Message();
+                        msg.obj = "请输入本周是第几周!!";
+                        makeToast.sendMessage(msg);
+                    } else {
+                        Message msg = new Message();
+                        msg.obj = "导入开始, 请稍等片刻...";
+                        makeToast.sendMessage(msg);
+                        stu.getCurrentWeek(Integer.parseInt(currentWeek));
+                        stu.writeCalendar(makeToast);
+                    }
+                }
+            }).start();
+        }
     }
 }
 

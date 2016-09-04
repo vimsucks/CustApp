@@ -42,12 +42,10 @@ public class CustStu {
     private String password;
     private ArrayList<CustClass> classTable = new ArrayList<>();
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
-    public String temp1 = " ";
-    public String temp2 = " ";
-    public String temp3 = " ";
     private Integer currentWeek;
     private MainActivity activity;
-    private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31}; private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
+    private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
+    private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private Integer[] endHours = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
     private Integer[] startMinutes = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 55, 45};
     private Integer[] endMinutes = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 40, 30};
@@ -99,7 +97,7 @@ public class CustStu {
         username = usrName;
         password = passwd;
         try {
-            String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
+            String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/onClick.aspx";
             request = requestBuilder
                     .url(loginUrl)
                     .get()
@@ -129,7 +127,6 @@ public class CustStu {
                     .build();
             response = httpClient.newCall(request).execute();
             html = response.body().string();
-            temp2 = html;
             response.body().close();
             doc = Jsoup.parse(html);
             Element nameEle = doc.getElementById("StudentNameValueLabel");
@@ -139,7 +136,6 @@ public class CustStu {
             } else {
                 sysLog("Login success\n");
                 String stuName = nameEle.text();
-                temp1 = stuName;
                 return true;
             }
         } catch (IOException e) {
@@ -281,14 +277,6 @@ public class CustStu {
 
         Object[] keys = weekdayClassTable.keySet().toArray();
         Arrays.sort(keys);
-        for (Object k : keys) {
-            System.out.println(k);
-            for (CustSimpClass cls : weekdayClassTable.get(k)) {
-                cls.print();
-            }
-        }
-
-        System.out.println(i);
     }
 
     public void updateClassOutput(Handler handler) {

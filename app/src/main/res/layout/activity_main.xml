@@ -32,7 +32,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:text="Login"
-        android:onClick="login" />
+        android:onClick="onClick" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -46,7 +46,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:text="-"
-            android:onClick="weekMinus"/>
+            android:onClick="onClick"/>
 
         <EditText
             android:id="@+id/week_edit_text"
@@ -63,7 +63,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:text="+"
-            android:onClick="weekPlus"/>
+            android:onClick="onClick"/>
 
     </LinearLayout>
 
@@ -105,7 +105,7 @@
             android:layout_weight="1"
             android:text="导入本地日历"
             android:clickable="false"
-            android:onClick="export"/>
+            android:onClick="onClick"/>
 
     </LinearLayout>
 
