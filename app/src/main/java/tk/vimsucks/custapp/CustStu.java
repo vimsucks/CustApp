@@ -1,10 +1,8 @@
 package tk.vimsucks.custapp;
 
-import android.Manifest;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.CalendarContract;
@@ -333,15 +331,6 @@ public class CustStu {
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
         Cursor userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
-        if (activity.getPackageManager().PERMISSION_GRANTED != activity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, activity.getPackageName())) {
-            Message msg = new Message();
-            msg.obj = "请赋予本APP写入日历的权限!";
-            handler.sendMessage(msg);
-            if (Build.VERSION.SDK_INT >= 23) {
-                activity.requestPermissions(new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
-            }
-            return;
-        }
         if (userCursor.getCount() < 1) {
             createCalendar();
             userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();

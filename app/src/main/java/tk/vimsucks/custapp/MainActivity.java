@@ -1,9 +1,13 @@
 package tk.vimsucks.custapp;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
@@ -24,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     EditText usernameEditText;
     EditText passwordEditText;
     EditText currentWeekEditText;
+    EditText weekEditText;
     Button exportButton;
     boolean isLogin;
     private Handler outputHandler = new Handler() {
@@ -72,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         usernameEditText = (EditText)findViewById(R.id.username_edit_text);
         passwordEditText = (EditText)findViewById(R.id.password_edit_text);
         currentWeekEditText = (EditText)findViewById(R.id.current_edit_text);
+        weekEditText = (EditText)findViewById(R.id.week_edit_text);
         exportButton = (Button)findViewById(R.id.export_button);
     }
 
@@ -128,7 +134,6 @@ public class MainActivity extends AppCompatActivity {
                 outputHandler.sendMessage(msg);
             }
         } else if (view.getId() == R.id.week_plus_button) {
-            EditText weekEditText = (EditText)findViewById(R.id.week_edit_text);
             Integer week = Integer.parseInt(weekEditText.getText().toString());
             if (week < 20) {
                 ++week;
@@ -145,6 +150,15 @@ public class MainActivity extends AppCompatActivity {
                 outputHandler.sendMessage(msg);
             }
         } else if (view.getId() == R.id.export_button) {
+            if (getPackageManager().PERMISSION_DENIED == getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, getPackageName())) {
+                Message msg = new Message();
+                msg.obj = "请赋予本APP写入日历的权限!";
+                makeToast.sendMessage(msg);
+                if (Build.VERSION.SDK_INT >= 23) {
+                    ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
+                }
+                return;
+            }
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -164,6 +178,25 @@ public class MainActivity extends AppCompatActivity {
                 }
             }).start();
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
+    {
+
+        if (requestCode == 1)
+        {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            {
+                onClick(exportButton);
+            } else
+            {
+                // Permission Denied
+                Toast.makeText(MainActivity.this, "Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }
 
