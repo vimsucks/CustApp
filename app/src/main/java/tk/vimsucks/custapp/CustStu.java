@@ -43,7 +43,7 @@ public class CustStu {
     private ArrayList<CustClass> classTable = new ArrayList<>();
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
-    private MainActivity activity;
+    static private MainActivity activity;
     private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private Integer[] endHours = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
@@ -97,7 +97,7 @@ public class CustStu {
         username = usrName;
         password = passwd;
         try {
-            String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/onClick.aspx";
+            String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
                     .url(loginUrl)
                     .get()
@@ -106,7 +106,8 @@ public class CustStu {
             String html = response.body().string();
             response.body().close();
             Document doc = Jsoup.parse(html);
-            String viewState = doc.getElementById("__VIEWSTATE").attr("value"); String eventVal = doc.getElementById("__EVENTVALIDATION").attr("value");
+            String viewState = doc.getElementById("__VIEWSTATE").attr("value");
+            String eventVal = doc.getElementById("__EVENTVALIDATION").attr("value");
             RequestBody formBody = new FormBody.Builder()
                     .add("__VIEWSTATE", viewState)
                     .add("__EVENTVALIDATION", eventVal)
@@ -296,6 +297,37 @@ public class CustStu {
         }
     }
 
+    public static Uri createCalendar() {
+            String accountName = "ClassTable";
+            Uri target = Uri.parse(CalendarContract.Calendars.CONTENT_URI.toString());
+            target = target.buildUpon().appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL).build();
+
+            ContentValues values = new ContentValues();
+            values.put(CalendarContract.Calendars.ACCOUNT_NAME, accountName);
+            values.put(CalendarContract.Calendars.ACCOUNT_TYPE, "com.google");
+            values.put(CalendarContract.Calendars.NAME, "课表");
+            values.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "课表");
+            values.put(CalendarContract.Calendars.CALENDAR_COLOR, 0x00FF00);
+            values.put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_ROOT);
+            values.put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName);
+            values.put(CalendarContract.Calendars.VISIBLE, 1);
+            values.put(CalendarContract.Calendars.SYNC_EVENTS, 1);
+            values.put(CalendarContract.Calendars.CALENDAR_TIME_ZONE, "Europe/Rome");
+            values.put(CalendarContract.Calendars.CAN_PARTIALLY_UPDATE, 1);
+            values.put(CalendarContract.Calendars.CAL_SYNC1, "https://www.google.com/calendar/feeds/" + accountName + "/private/full");
+            values.put(CalendarContract.Calendars.CAL_SYNC2, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
+            values.put(CalendarContract.Calendars.CAL_SYNC3, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
+            values.put(CalendarContract.Calendars.CAL_SYNC4, 1);
+            values.put(CalendarContract.Calendars.CAL_SYNC5, 0);
+            values.put(CalendarContract.Calendars.CAL_SYNC8, System.currentTimeMillis());
+
+            Uri newCalendar = activity.getContentResolver().insert(target, values);
+
+            return newCalendar;
+    }
+
     public void writeCalendar(Handler handler) {
         //TODO: Create a Calendar named "课程表"
         String calendarURL = "content://com.android.calendar/calendars";
@@ -311,24 +343,39 @@ public class CustStu {
             return;
         }
         if (userCursor.getCount() < 1) {
-            Message msg = new Message();
-            msg.obj = "请在系统日历APP中添加一个新账户!";
-            handler.sendMessage(msg);
-            return;
-        }
-        if (userCursor.getCount() > 0) {
+            createCalendar();
+            userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
             userCursor.moveToFirst();
+            while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+                userCursor.moveToNext();
+            }
+            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
+        } else {
+            userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+            userCursor.moveToFirst();
+            while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+                userCursor.moveToNext();
+            }
+            if (userCursor.isAfterLast()) {
+                createCalendar();
+                userCursor.moveToFirst();
+                userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
+                while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+                    userCursor.moveToNext();
+                }
+            }
+            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         }
-        calID = userCursor.getString(userCursor.getColumnIndex("_id"));
-        Integer i = 0;
         for (CustClass cls : classTable) {
-            writeSingleClass(cls, calID, i++, handler);
+            writeSingleClass(cls, calID, handler);
         }
         Message msg = new Message();
         msg.obj = "导入完成";
         handler.sendMessage(msg);
     }
-    public void writeSingleClass(CustClass cls, String calID, Integer colorIndex, Handler handler) {
+
+    public void writeSingleClass(CustClass cls, String calID, Handler handler) {
+        Integer clsNum = 0;
         String calendarEventURL = "content://com.android.calendar/events";
         String calendarReminderURL = "content://com.android.calendar/reminders";
         Integer startHour;
@@ -362,17 +409,23 @@ public class CustStu {
         }
         Integer month = current.get(Calendar.MONTH);
         Integer day = current.get(Calendar.DATE);
+        //System.out.println(day);
         Integer currentWeekday = current.get(Calendar.DAY_OF_WEEK);
+        currentWeekday = (currentWeekday == 1 ? 7 : currentWeekday - 1);
+        //System.out.println(currentWeekday);
         Integer clsWeekday = cls.weekday;
-        day += (clsWeekday - currentWeekday + 1);
-        Integer lastWeek = 0;
+        day += (clsWeekday - currentWeekday);
+        Integer lastWeek = currentWeek;
+        //System.out.println(day);
         for (Integer week : cls.weeks) {
+            ++clsNum;
             Integer wk = week - lastWeek;
             lastWeek = week;
             day += wk * 7;
-            Integer mnDay = monthDays[month];
-            if (mnDay < day) {
-                day -= mnDay;
+            //System.out.println(day);
+            Integer monthDay = monthDays[month];
+            if (monthDay < day) {
+                day -= monthDay;
                 month += 1;
                 if (month == 12) {
                     month = 0;
@@ -385,7 +438,6 @@ public class CustStu {
             calendar.set(year, month, day, endHour, endMinute);
             long end = calendar.getTime().getTime();
             event.put(CalendarContract.Events.DTSTART, start);
-            //event.put(CalendarContract.Events.EVENT_COLOR, colors[colorIndex]);
             event.put(CalendarContract.Events.DTEND, end);
             event.put(CalendarContract.Events.HAS_ALARM, 1);
             event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
@@ -396,5 +448,6 @@ public class CustStu {
             values.put("minutes", 10);
             activity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
         }
+        System.out.println(clsNum);
     }
 }
