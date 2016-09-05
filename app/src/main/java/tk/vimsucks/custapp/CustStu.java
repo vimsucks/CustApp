@@ -1,5 +1,6 @@
 package tk.vimsucks.custapp;
 
+import android.Manifest;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
@@ -41,8 +42,7 @@ public class CustStu {
     private ArrayList<CustClass> classTable = new ArrayList<>();
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
-    static private MainActivity activity;
-    static private Handler toastHandler;
+    static private MainActivity mainActivity;
     private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private Integer[] endHours = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
@@ -80,9 +80,8 @@ public class CustStu {
     private Request request;
     private Response response;
 
-    public CustStu(MainActivity act, Handler tstHandler) {
-        activity = act;
-        toastHandler = tstHandler;
+    public CustStu(MainActivity act) {
+        mainActivity = act;
     }
 
     private void sysLog(String log) {
@@ -134,19 +133,19 @@ public class CustStu {
             if (nameEle == null) {
                 Message msg = new Message();
                 msg.obj = "登录失败";
-                toastHandler.sendMessage(msg);
+                mainActivity.makeToast.sendMessage(msg);
                 return false;
             } else {
                 String stuName = nameEle.text();
                 Message msg = new Message();
                 msg.obj = stuName + "登录成功";
-                toastHandler.sendMessage(msg);
+                mainActivity.makeToast.sendMessage(msg);
                 return true;
             }
         } catch (IOException e) {
             Message msg = new Message();
             msg.obj = "登录失败,服务器炸啦";
-            toastHandler.sendMessage(msg);
+            mainActivity.makeToast.sendMessage(msg);
             return false;
         }
     }
@@ -218,12 +217,12 @@ public class CustStu {
             }
             Message msg = new Message();
             msg.obj = "成功获取课表";
-            toastHandler.sendMessage(msg);
+            mainActivity.makeToast.sendMessage(msg);
             return true;
         } catch (IOException e) {
             Message msg = new Message();
             msg.obj = "获取课表失败,服务器炸啦";
-            toastHandler.sendMessage(msg);
+            mainActivity.makeToast.sendMessage(msg);
             return false;
         }
     }
@@ -291,7 +290,7 @@ public class CustStu {
             values.put(CalendarContract.Calendars.CAL_SYNC5, 0);
             values.put(CalendarContract.Calendars.CAL_SYNC8, System.currentTimeMillis());
 
-            Uri newCalendar = activity.getContentResolver().insert(target, values);
+            Uri newCalendar = mainActivity.getContentResolver().insert(target, values);
 
             return newCalendar;
     }
@@ -300,17 +299,17 @@ public class CustStu {
         //TODO: Create a Calendar named "课程表"
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
-        Cursor userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+        Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
         if (userCursor.getCount() < 1) {
             createCalendar();
-            userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
+            userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
             userCursor.moveToFirst();
             while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                 userCursor.moveToNext();
             }
             calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         } else {
-            userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+            userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
             userCursor.moveToFirst();
             while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                 userCursor.moveToNext();
@@ -318,7 +317,7 @@ public class CustStu {
             if (userCursor.isAfterLast()) {
                 createCalendar();
                 userCursor.moveToFirst();
-                userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
+                userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
                 while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                     userCursor.moveToNext();
                 }
@@ -330,7 +329,7 @@ public class CustStu {
         }
         Message msg = new Message();
         msg.obj = "导入完成";
-        toastHandler.sendMessage(msg);
+        mainActivity.makeToast.sendMessage(msg);
     }
 
     public void writeSingleClass(CustClass cls, String calID) {
@@ -400,12 +399,14 @@ public class CustStu {
             event.put(CalendarContract.Events.DTEND, end);
             event.put(CalendarContract.Events.HAS_ALARM, 1);
             event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
-            Uri newEvent = activity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
-            long id = Long.parseLong(newEvent.getLastPathSegment());
-            ContentValues values = new ContentValues();
-            values.put("event_id", id);
-            values.put("minutes", 10);
-            activity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
+            if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
+                Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
+                long id = Long.parseLong(newEvent.getLastPathSegment());
+                ContentValues values = new ContentValues();
+                values.put("event_id", id);
+                values.put("minutes", 10);
+                mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
+            }
         }
         System.out.println(clsNum);
     }
