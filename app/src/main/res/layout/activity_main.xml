@@ -96,7 +96,8 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:hint="本周是第几周?"/>
+            android:hint="本周是第几周?"
+            android:inputType="numberDecimal"/>
 
         <Button
             android:id="@+id/export_button"

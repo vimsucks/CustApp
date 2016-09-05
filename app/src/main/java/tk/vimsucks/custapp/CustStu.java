@@ -42,6 +42,7 @@ public class CustStu {
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
     static private MainActivity activity;
+    static private Handler toastHandler;
     private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private Integer[] endHours = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
@@ -79,8 +80,9 @@ public class CustStu {
     private Request request;
     private Response response;
 
-    public CustStu(MainActivity act) {
+    public CustStu(MainActivity act, Handler tstHandler) {
         activity = act;
+        toastHandler = tstHandler;
     }
 
     private void sysLog(String log) {
@@ -130,24 +132,30 @@ public class CustStu {
             doc = Jsoup.parse(html);
             Element nameEle = doc.getElementById("StudentNameValueLabel");
             if (nameEle == null) {
-                sysLog("Login failed\n");
+                Message msg = new Message();
+                msg.obj = "登录失败";
+                toastHandler.sendMessage(msg);
                 return false;
             } else {
-                sysLog("Login success\n");
                 String stuName = nameEle.text();
+                Message msg = new Message();
+                msg.obj = stuName + "登录成功";
+                toastHandler.sendMessage(msg);
                 return true;
             }
         } catch (IOException e) {
-            return true;
+            Message msg = new Message();
+            msg.obj = "登录失败,服务器炸啦";
+            toastHandler.sendMessage(msg);
+            return false;
         }
     }
 
-    public void getClassTable() {
+    public boolean getClassTable() {
         if (!classTable.isEmpty()) {
-            return;
+            return true;
         }
         String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
-        //String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/PersonalCourses.aspx?role=student";
         try {
             request = requestBuilder
                     .url(classUrl)
@@ -155,8 +163,10 @@ public class CustStu {
                     .build();
             response = httpClient.newCall(request).execute();
             String html = response.body().string();
+            System.out.println("=======");
+            System.out.println(html);
+            System.out.println("=======");
             Document doc = Jsoup.parse(html);
-            //Elements tables = doc.getElementsByTag("table");
             Elements contentCells = doc.getElementsByClass("ContentCell");
             Integer i = 0;
             for (Element contentCell : contentCells) {
@@ -176,19 +186,12 @@ public class CustStu {
                                 }
                             }
                             tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                            /*
-                            for (Element td : tdsAfter) {
-                                System.out.print(td.text() + " ");
-                            }
-                            */
                             classTable.add(new CustClass(tdsAfter.get(0).text(),
                                     tdsAfter.get(1).text(),
                                     tdsAfter.get(2).text(),
                                     tdsAfter.get(3).text(),
                                     i % 7 == 0 ? 7 : i % 7,
                                     i % 7 == 0 ? i / 7 : i / 7 + 1));
-                            //System.out.print("\n");
-                            //System.out.print(tdsAfter.size());
                         }
                     }
                 } else {
@@ -204,56 +207,24 @@ public class CustStu {
                             }
                         }
                         tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                        /*
-                        for (Element td : tdsAfter) {
-                            System.out.print(td.text() + " ");
-                        }
-                        */
                         classTable.add(new CustClass(tdsAfter.get(0).text(),
                                 tdsAfter.get(1).text(),
                                 tdsAfter.get(2).text(),
                                 tdsAfter.get(3).text(),
                                 i % 7 == 0 ? 7 : i % 7,
                                 i % 7 == 0 ? i / 7 : i / 7 + 1));
-                        //System.out.print("\n");
-                        //System.out.print(tdsAfter.size());
                     }
                 }
             }
-            /*
-            tables = new Elements(tables.subList(1, tables.size() - 1));
-            Integer i = 0;
-            for (Element table : tables) {
-                Elements tds = table.getElementsByTag("td");
-                Element td1 = tds.first();
-                if (td1.text().trim().length() == 1) {
-                    ++i;
-                    continue;
-                } else {
-                    //tds = new Elements(tds.subList(0, 4));
-                    Elements tdsAfter = new Elements();
-                    for (Element td : tds) {
-                        if (td.text().trim().length() > 1) {
-                            tdsAfter.add(td);
-                        }
-                    }
-                    ++i;
-                    classTable.add(new CustClass(tdsAfter.get(0).text(),
-                                                 tdsAfter.get(1).text(),
-                                                 tdsAfter.get(2).text(),
-                                                 tdsAfter.get(3).text(),
-                                                 i % 7 == 0 ? 7 : i % 7,
-                                                 i % 7 == 0 ? i / 7 : i / 7 + 1));
-                    System.out.print(tds.get(0).text() + " ");
-                    System.out.print(tds.get(1).text() + " ");
-                    System.out.print(tds.get(2).text() + " ");
-                    System.out.print(tds.get(3).text() + " ");
-                    System.out.print("\n");
-                }
-            }
-            */
+            Message msg = new Message();
+            msg.obj = "成功获取课表";
+            toastHandler.sendMessage(msg);
+            return true;
         } catch (IOException e) {
-
+            Message msg = new Message();
+            msg.obj = "获取课表失败,服务器炸啦";
+            toastHandler.sendMessage(msg);
+            return false;
         }
     }
 
@@ -304,7 +275,7 @@ public class CustStu {
 
             ContentValues values = new ContentValues();
             values.put(CalendarContract.Calendars.ACCOUNT_NAME, accountName);
-            values.put(CalendarContract.Calendars.ACCOUNT_TYPE, "com.google");
+            values.put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL);
             values.put(CalendarContract.Calendars.NAME, "课表");
             values.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "课表");
             values.put(CalendarContract.Calendars.CALENDAR_COLOR, 0x00FF00);
@@ -312,11 +283,10 @@ public class CustStu {
             values.put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName);
             values.put(CalendarContract.Calendars.VISIBLE, 1);
             values.put(CalendarContract.Calendars.SYNC_EVENTS, 1);
-            values.put(CalendarContract.Calendars.CALENDAR_TIME_ZONE, "Europe/Rome");
+            values.put(CalendarContract.Calendars.CALENDAR_TIME_ZONE, "Asia/Shanghai");
             values.put(CalendarContract.Calendars.CAN_PARTIALLY_UPDATE, 1);
             values.put(CalendarContract.Calendars.CAL_SYNC1, "https://www.google.com/calendar/feeds/" + accountName + "/private/full");
-            values.put(CalendarContract.Calendars.CAL_SYNC2, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
-            values.put(CalendarContract.Calendars.CAL_SYNC3, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
+            values.put(CalendarContract.Calendars.CAL_SYNC2, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName); values.put(CalendarContract.Calendars.CAL_SYNC3, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
             values.put(CalendarContract.Calendars.CAL_SYNC4, 1);
             values.put(CalendarContract.Calendars.CAL_SYNC5, 0);
             values.put(CalendarContract.Calendars.CAL_SYNC8, System.currentTimeMillis());
@@ -326,7 +296,7 @@ public class CustStu {
             return newCalendar;
     }
 
-    public void writeCalendar(Handler handler) {
+    public void writeCalendar() {
         //TODO: Create a Calendar named "课程表"
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
@@ -356,14 +326,14 @@ public class CustStu {
             calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         }
         for (CustClass cls : classTable) {
-            writeSingleClass(cls, calID, handler);
+            writeSingleClass(cls, calID);
         }
         Message msg = new Message();
         msg.obj = "导入完成";
-        handler.sendMessage(msg);
+        toastHandler.sendMessage(msg);
     }
 
-    public void writeSingleClass(CustClass cls, String calID, Handler handler) {
+    public void writeSingleClass(CustClass cls, String calID) {
         Integer clsNum = 0;
         String calendarEventURL = "content://com.android.calendar/events";
         String calendarReminderURL = "content://com.android.calendar/reminders";
@@ -430,7 +400,7 @@ public class CustStu {
             event.put(CalendarContract.Events.DTEND, end);
             event.put(CalendarContract.Events.HAS_ALARM, 1);
             event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
-            Uri newEvent = activity.getContentResolver().insert(Uri.parse(calendarEventURL), event);
+            Uri newEvent = activity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
             long id = Long.parseLong(newEvent.getLastPathSegment());
             ContentValues values = new ContentValues();
             values.put("event_id", id);

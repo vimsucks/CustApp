@@ -30,7 +30,8 @@ public class MainActivity extends AppCompatActivity {
     EditText currentWeekEditText;
     EditText weekEditText;
     Button exportButton;
-    boolean isLogin;
+    boolean isLogin = false;
+    boolean isClassTableAcquired = false;
     private Handler outputHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -65,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         setContentView(R.layout.activity_main);
-        stu = new CustStu(this);
+        stu = new CustStu(this, makeToast);
         initViews();;
     }
 
@@ -95,17 +96,19 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
                     Integer week = Integer.parseInt(weekEditText.getText().toString());
-                    if (stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString())) {
+                    isLogin = stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString());
+                    if (isLogin) {
+                        System.out.println("Login successful");
                         stu.getCurrentWeek(week);
-                        stu.getClassTable();
-                        stu.getWeekClassTable();
-                        outputClearHandler.sendMessage(new Message());
-                        stu.updateClassOutput(outputHandler);
-                        startButton.setClickable(false);
-                        exportButton.setClickable(true);
-                        isLogin = true;
+                        isClassTableAcquired = stu.getClassTable();
+                        if (isClassTableAcquired) {
+                            stu.getWeekClassTable();
+                            outputClearHandler.sendMessage(new Message());
+                            stu.updateClassOutput(outputHandler);
+                            //startButton.setClickable(false);
+                            exportButton.setClickable(true);
+                        }
                     } else {
-                        outputMsg("Login failed");
                     }
                 }
             }).start();
@@ -150,6 +153,18 @@ public class MainActivity extends AppCompatActivity {
                 outputHandler.sendMessage(msg);
             }
         } else if (view.getId() == R.id.export_button) {
+            if (!isLogin) {
+                Message msg = new Message();
+                msg.obj = "请先登录";
+                makeToast.sendMessage(msg);
+                return;
+            }
+            if (!isClassTableAcquired) {
+                Message msg = new Message();
+                msg.obj = "未获取课表, 请重新点击登录";
+                makeToast.sendMessage(msg);
+                return;
+            }
             if (getPackageManager().PERMISSION_DENIED == getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, getPackageName())) {
                 Message msg = new Message();
                 msg.obj = "请赋予本APP写入日历的权限!";
@@ -173,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
                         msg.obj = "导入开始, 请稍等片刻...";
                         makeToast.sendMessage(msg);
                         stu.getCurrentWeek(Integer.parseInt(currentWeek));
-                        stu.writeCalendar(makeToast);
+                        stu.writeCalendar();
                     }
                 }
             }).start();
