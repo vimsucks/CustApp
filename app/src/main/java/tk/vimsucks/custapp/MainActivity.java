@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
             outputTextView.setText("");
         }
     };
-    public Handler makeToast = new Handler() {
+    public Handler toastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             Toast.makeText(MainActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         setContentView(R.layout.activity_main);
-        stu = new CustStu(this, makeToast);
+        stu = new CustStu(this);
         initViews();;
     }
 
@@ -156,19 +156,19 @@ public class MainActivity extends AppCompatActivity {
             if (!isLogin) {
                 Message msg = new Message();
                 msg.obj = "请先登录";
-                makeToast.sendMessage(msg);
+                toastHandler.sendMessage(msg);
                 return;
             }
             if (!isClassTableAcquired) {
                 Message msg = new Message();
                 msg.obj = "未获取课表, 请重新点击登录";
-                makeToast.sendMessage(msg);
+                toastHandler.sendMessage(msg);
                 return;
             }
             if (getPackageManager().PERMISSION_DENIED == getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, getPackageName())) {
                 Message msg = new Message();
                 msg.obj = "请赋予本APP写入日历的权限!";
-                makeToast.sendMessage(msg);
+                toastHandler.sendMessage(msg);
                 if (Build.VERSION.SDK_INT >= 23) {
                     ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
                 }
@@ -182,11 +182,11 @@ public class MainActivity extends AppCompatActivity {
                     if (currentWeek.length() == 0) {
                         Message msg = new Message();
                         msg.obj = "请输入本周是第几周!!";
-                        makeToast.sendMessage(msg);
+                        toastHandler.sendMessage(msg);
                     } else {
                         Message msg = new Message();
                         msg.obj = "导入开始, 请稍等片刻...";
-                        makeToast.sendMessage(msg);
+                        toastHandler.sendMessage(msg);
                         stu.getCurrentWeek(Integer.parseInt(currentWeek));
                         stu.writeCalendar();
                     }

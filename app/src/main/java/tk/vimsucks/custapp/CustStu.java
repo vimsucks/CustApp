@@ -43,7 +43,6 @@ public class CustStu {
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
     static private MainActivity mainActivity;
-    static private Handler toastHandler;
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private final Integer[] STARTHOURS = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private final Integer[] ENDHOURS = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
@@ -81,9 +80,8 @@ public class CustStu {
     private Request request;
     private Response response;
 
-    public CustStu(MainActivity act, Handler tstHandler) {
+    public CustStu(MainActivity act) {
         mainActivity = act;
-        toastHandler = tstHandler;
     }
 
     public boolean login(String usrName, String passwd) {
@@ -126,20 +124,20 @@ public class CustStu {
             Element nameEle = doc.getElementById("StudentNameValueLabel");
             if (nameEle == null) {
                 Message msg = new Message();
-                msg.obj = "登录失败";
-                toastHandler.sendMessage(msg);
+                msg.obj = "登录失败,服务器炸啦";
+                mainActivity.toastHandler.sendMessage(msg);
                 return false;
             } else {
                 String stuName = nameEle.text();
                 Message msg = new Message();
                 msg.obj = stuName + "登录成功";
-                toastHandler.sendMessage(msg);
+                mainActivity.toastHandler.sendMessage(msg);
                 return true;
             }
         } catch (IOException e) {
             Message msg = new Message();
             msg.obj = "登录失败,服务器炸啦";
-            toastHandler.sendMessage(msg);
+            mainActivity.toastHandler.sendMessage(msg);
             return false;
         }
     }
@@ -208,12 +206,12 @@ public class CustStu {
             }
             Message msg = new Message();
             msg.obj = "成功获取课表";
-            toastHandler.sendMessage(msg);
+            mainActivity.toastHandler.sendMessage(msg);
             return true;
         } catch (IOException e) {
             Message msg = new Message();
             msg.obj = "获取课表失败,服务器炸啦";
-            toastHandler.sendMessage(msg);
+            mainActivity.toastHandler.sendMessage(msg);
             return false;
         }
     }
@@ -319,7 +317,7 @@ public class CustStu {
         }
         Message msg = new Message();
         msg.obj = "导入完成";
-        toastHandler.sendMessage(msg);
+        mainActivity.toastHandler.sendMessage(msg);
     }
 
     public void writeSingleClass(CustClass cls, String calID) {
