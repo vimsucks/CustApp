@@ -1,5 +1,6 @@
 package tk.vimsucks.custapp;
 
+import android.Manifest;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
@@ -41,13 +42,13 @@ public class CustStu {
     private ArrayList<CustClass> classTable = new ArrayList<>();
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
-    static private MainActivity activity;
+    static private MainActivity mainActivity;
     static private Handler toastHandler;
-    private Integer[] monthDays = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
-    private Integer[] startHours = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
-    private Integer[] endHours = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
-    private Integer[] startMinutes = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 55, 45};
-    private Integer[] endMinutes = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 40, 30};
+    private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
+    private final Integer[] STARTHOURS = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
+    private final Integer[] ENDHOURS = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
+    private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 55, 45};
+    private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 40, 30};
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -81,16 +82,8 @@ public class CustStu {
     private Response response;
 
     public CustStu(MainActivity act, Handler tstHandler) {
-        activity = act;
+        mainActivity = act;
         toastHandler = tstHandler;
-    }
-
-    private void sysLog(String log) {
-        System.out.print(log);
-    }
-
-    private void sysLog(Integer log) {
-        System.out.print(log);
     }
 
     public boolean login(String usrName, String passwd) {
@@ -163,9 +156,6 @@ public class CustStu {
                     .build();
             response = httpClient.newCall(request).execute();
             String html = response.body().string();
-            System.out.println("=======");
-            System.out.println(html);
-            System.out.println("=======");
             Document doc = Jsoup.parse(html);
             Elements contentCells = doc.getElementsByClass("ContentCell");
             Integer i = 0;
@@ -257,7 +247,6 @@ public class CustStu {
             msg = new Message();
             msg.obj = "星期" + key.toString();
             handler.sendMessage(msg);
-            //System.out.println(key);
             for (CustSimpClass cls : weekdayClassTable.get(key)) {
                 msg = new Message();
                 msg.obj = cls.getClassInfo();
@@ -291,7 +280,7 @@ public class CustStu {
             values.put(CalendarContract.Calendars.CAL_SYNC5, 0);
             values.put(CalendarContract.Calendars.CAL_SYNC8, System.currentTimeMillis());
 
-            Uri newCalendar = activity.getContentResolver().insert(target, values);
+            Uri newCalendar = mainActivity.getContentResolver().insert(target, values);
 
             return newCalendar;
     }
@@ -300,17 +289,17 @@ public class CustStu {
         //TODO: Create a Calendar named "课程表"
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
-        Cursor userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+        Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
         if (userCursor.getCount() < 1) {
             createCalendar();
-            userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
+            userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
             userCursor.moveToFirst();
             while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                 userCursor.moveToNext();
             }
             calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         } else {
-            userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+            userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
             userCursor.moveToFirst();
             while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                 userCursor.moveToNext();
@@ -318,7 +307,7 @@ public class CustStu {
             if (userCursor.isAfterLast()) {
                 createCalendar();
                 userCursor.moveToFirst();
-                userCursor = activity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
+                userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
                 while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                     userCursor.moveToNext();
                 }
@@ -342,17 +331,16 @@ public class CustStu {
         Integer endHour;
         Integer endMinute;
         if (cls.isHalf) {
-            startHour = startHours[cls.nth * 2 - 1];
-            startMinute = startMinutes[cls.nth * 2 - 1];
-            endHour = endHours[cls.nth * 2 - 1];
-            endMinute = endMinutes[cls.nth * 2 - 1];
+            startHour = STARTHOURS[cls.nth * 2 - 1];
+            startMinute = STARTMINUTES[cls.nth * 2 - 1];
+            endHour = ENDHOURS[cls.nth * 2 - 1];
+            endMinute = ENDMINUTES[cls.nth * 2 - 1];
         } else {
-            startHour = startHours[cls.nth * 2 - 1];
-            startMinute = startMinutes[cls.nth * 2 - 1];
-            endHour = endHours[cls.nth * 2];
-            endMinute = endMinutes[cls.nth * 2];
+            startHour = STARTHOURS[cls.nth * 2 - 1];
+            startMinute = STARTMINUTES[cls.nth * 2 - 1];
+            endHour = ENDHOURS[cls.nth * 2];
+            endMinute = ENDMINUTES[cls.nth * 2];
         }
-        //System.out.println(cls.className);
         ContentValues event = new ContentValues();
         event.put(CalendarContract.Events.TITLE, cls.className);
         event.put(CalendarContract.Events.DESCRIPTION, "教师: " + cls.classTeacher);
@@ -362,27 +350,23 @@ public class CustStu {
         Calendar current = Calendar.getInstance();
         Integer year = current.get(Calendar.YEAR);
         if (year % 100 != 0 && year % 4 == 0) {
-            monthDays[2] = 29;
+            MONTHDAYS[2] = 29;
         } else if (year % 400 == 0) {
-            monthDays[2] = 29;
+            MONTHDAYS[2] = 29;
         }
         Integer month = current.get(Calendar.MONTH);
         Integer day = current.get(Calendar.DATE);
-        //System.out.println(day);
         Integer currentWeekday = current.get(Calendar.DAY_OF_WEEK);
         currentWeekday = (currentWeekday == 1 ? 7 : currentWeekday - 1);
-        //System.out.println(currentWeekday);
         Integer clsWeekday = cls.weekday;
         day += (clsWeekday - currentWeekday);
         Integer lastWeek = currentWeek;
-        //System.out.println(day);
         for (Integer week : cls.weeks) {
             ++clsNum;
             Integer wk = week - lastWeek;
             lastWeek = week;
             day += wk * 7;
-            //System.out.println(day);
-            Integer monthDay = monthDays[month];
+            Integer monthDay = MONTHDAYS[month];
             if (monthDay < day) {
                 day -= monthDay;
                 month += 1;
@@ -390,7 +374,6 @@ public class CustStu {
                     month = 0;
                 }
             }
-            //System.out.println(String.valueOf(month + 1) + "月" + String.valueOf(day) + "日");
             Calendar calendar = Calendar.getInstance();
             calendar.set(year, month, day, startHour, startMinute);
             long start = calendar.getTime().getTime();
@@ -400,13 +383,14 @@ public class CustStu {
             event.put(CalendarContract.Events.DTEND, end);
             event.put(CalendarContract.Events.HAS_ALARM, 1);
             event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
-            Uri newEvent = activity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
-            long id = Long.parseLong(newEvent.getLastPathSegment());
-            ContentValues values = new ContentValues();
-            values.put("event_id", id);
-            values.put("minutes", 10);
-            activity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
+            if (mainActivity.getPackageManager().PERMISSION_DENIED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
+                Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
+                long id = Long.parseLong(newEvent.getLastPathSegment());
+                ContentValues values = new ContentValues();
+                values.put("event_id", id);
+                values.put("minutes", 10);
+                mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
+            }
         }
-        System.out.println(clsNum);
     }
 }
