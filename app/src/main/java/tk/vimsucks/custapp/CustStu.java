@@ -84,6 +84,14 @@ public class CustStu {
         mainActivity = act;
     }
 
+    private void sysLog(String log) {
+        System.out.print(log);
+    }
+
+    private void sysLog(Integer log) {
+        System.out.print(log);
+    }
+
     public boolean login(String usrName, String passwd) {
         username = usrName;
         password = passwd;
