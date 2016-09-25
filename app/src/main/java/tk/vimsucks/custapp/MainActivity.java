@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     Button exportButton;
     boolean isLogin = false;
     boolean isClassTableAcquired = false;
+    boolean isExpeTableAcquired = false;
     private Handler outputHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -84,16 +85,21 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClick(View view) {
         if (view.getId() == R.id.start_button) {
-            new Thread(new Runnable() {
-
-                private void outputMsg(String obj) {
-                    Message msg = new Message();
-                    msg.obj = obj;
-                    outputHandler.sendMessage(msg);
+            final Handler startHandler = new Handler() {
+                @Override
+                public void handleMessage(Message msg) {
+                    startButton.setText(msg.obj.toString());
                 }
+            };
+
+            new Thread(new Runnable() {
 
                 @Override
                 public void run() {
+                    startButton.setClickable(false);
+                    Message msg = new Message();
+                    msg.obj = "登录中...";
+                    startHandler.sendMessage(msg);
                     EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
                     Integer week = Integer.parseInt(weekEditText.getText().toString());
                     isLogin = stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString());
@@ -101,14 +107,22 @@ public class MainActivity extends AppCompatActivity {
                         System.out.println("Login successful");
                         stu.getCurrentWeek(week);
                         isClassTableAcquired = stu.getClassTable();
-                        if (isClassTableAcquired) {
+                        isExpeTableAcquired = stu.getExpeTable();
+                        if (isClassTableAcquired && isExpeTableAcquired) {
                             stu.getWeekClassTable();
                             outputClearHandler.sendMessage(new Message());
                             stu.updateClassOutput(outputHandler);
-                            //startButton.setClickable(false);
+                            startButton.setClickable(false);
                             exportButton.setClickable(true);
+                            msg = new Message();
+                            msg.obj = "登录成功";
+                            startHandler.sendMessage(msg);
                         }
                     } else {
+                        startButton.setClickable(true);
+                        msg = new Message();
+                        msg.obj = "登录";
+                        startHandler.sendMessage(msg);
                     }
                 }
             }).start();

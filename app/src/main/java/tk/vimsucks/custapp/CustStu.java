@@ -40,14 +40,15 @@ public class CustStu {
     private String username;
     private String password;
     private ArrayList<CustClass> classTable = new ArrayList<>();
+    private ArrayList<CustExpe> expeTable = new ArrayList<>();
     private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
     static private MainActivity mainActivity;
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private final Integer[] STARTHOURS = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private final Integer[] ENDHOURS = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
-    private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 55, 45};
-    private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 40, 30};
+    private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 40, 45};
+    private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 25, 30};
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -224,6 +225,46 @@ public class CustStu {
         }
     }
 
+    public boolean getExpeTable() {
+        if (!expeTable.isEmpty()) {
+            return true;
+        }
+        String expeUrl = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
+        try {
+            request = requestBuilder
+                    .url(expeUrl)
+                    .get()
+                    .build();
+            response = httpClient.newCall(request).execute();
+            String html = response.body().string();
+            Document doc = Jsoup.parse(html);
+            Elements trs = doc.getElementsByTag("tr");
+            trs.remove(0);
+            Integer i = 0;
+            for (Element tr : trs) {
+                ++i;
+                Elements tds = tr.getElementsByTag("td");
+                CustExpe expe = new CustExpe(tds.get(0).text() + "-" + tds.get(1).text(),
+                        tds.get(5).text(),
+                        tds.get(2).text(),
+                        tds.get(3).text(),
+                        tds.get(4).text()
+                );
+                expeTable.add(expe);
+                expe.print();
+            }
+            Message msg = new Message();
+            msg.obj = "成功获取实验表";
+            mainActivity.toastHandler.sendMessage(msg);
+            return true;
+        } catch (IOException e) {
+            Message msg = new Message();
+            msg.obj = "获取课表失败,服务器炸啦";
+            mainActivity.toastHandler.sendMessage(msg);
+            return false;
+        }
+    }
+
     public void getCurrentWeek(Integer week) {
         currentWeek = week;
     }
@@ -262,33 +303,33 @@ public class CustStu {
     }
 
     public static Uri createCalendar() {
-            String accountName = "ClassTable";
-            Uri target = Uri.parse(CalendarContract.Calendars.CONTENT_URI.toString());
-            target = target.buildUpon().appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
-            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL).build();
+        String accountName = "ClassTable";
+        Uri target = Uri.parse(CalendarContract.Calendars.CONTENT_URI.toString());
+        target = target.buildUpon().appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+                .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
+                .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL).build();
 
-            ContentValues values = new ContentValues();
-            values.put(CalendarContract.Calendars.ACCOUNT_NAME, accountName);
-            values.put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL);
-            values.put(CalendarContract.Calendars.NAME, "课表");
-            values.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "课表");
-            values.put(CalendarContract.Calendars.CALENDAR_COLOR, 0x00FF00);
-            values.put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_ROOT);
-            values.put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName);
-            values.put(CalendarContract.Calendars.VISIBLE, 1);
-            values.put(CalendarContract.Calendars.SYNC_EVENTS, 1);
-            values.put(CalendarContract.Calendars.CALENDAR_TIME_ZONE, "Asia/Shanghai");
-            values.put(CalendarContract.Calendars.CAN_PARTIALLY_UPDATE, 1);
-            values.put(CalendarContract.Calendars.CAL_SYNC1, "https://www.google.com/calendar/feeds/" + accountName + "/private/full");
-            values.put(CalendarContract.Calendars.CAL_SYNC2, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName); values.put(CalendarContract.Calendars.CAL_SYNC3, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
-            values.put(CalendarContract.Calendars.CAL_SYNC4, 1);
-            values.put(CalendarContract.Calendars.CAL_SYNC5, 0);
-            values.put(CalendarContract.Calendars.CAL_SYNC8, System.currentTimeMillis());
+        ContentValues values = new ContentValues();
+        values.put(CalendarContract.Calendars.ACCOUNT_NAME, accountName);
+        values.put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL);
+        values.put(CalendarContract.Calendars.NAME, "课表");
+        values.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "课表");
+        values.put(CalendarContract.Calendars.CALENDAR_COLOR, 0x00FF00);
+        values.put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_ROOT);
+        values.put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName);
+        values.put(CalendarContract.Calendars.VISIBLE, 1);
+        values.put(CalendarContract.Calendars.SYNC_EVENTS, 1);
+        values.put(CalendarContract.Calendars.CALENDAR_TIME_ZONE, "Asia/Shanghai");
+        values.put(CalendarContract.Calendars.CAN_PARTIALLY_UPDATE, 1);
+        values.put(CalendarContract.Calendars.CAL_SYNC1, "https://www.google.com/calendar/feeds/" + accountName + "/private/full");
+        values.put(CalendarContract.Calendars.CAL_SYNC2, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName); values.put(CalendarContract.Calendars.CAL_SYNC3, "https://www.google.com/calendar/feeds/default/allcalendars/full/" + accountName);
+        values.put(CalendarContract.Calendars.CAL_SYNC4, 1);
+        values.put(CalendarContract.Calendars.CAL_SYNC5, 0);
+        values.put(CalendarContract.Calendars.CAL_SYNC8, System.currentTimeMillis());
 
-            Uri newCalendar = mainActivity.getContentResolver().insert(target, values);
+        Uri newCalendar = mainActivity.getContentResolver().insert(target, values);
 
-            return newCalendar;
+        return newCalendar;
     }
 
     public void writeCalendar() {
@@ -322,6 +363,9 @@ public class CustStu {
         }
         for (CustClass cls : classTable) {
             writeSingleClass(cls, calID);
+        }
+        for (CustExpe expe : expeTable) {
+            writeSingleExpe(expe, calID);
         }
         Message msg = new Message();
         msg.obj = "导入完成";
@@ -389,7 +433,7 @@ public class CustStu {
             event.put(CalendarContract.Events.DTEND, end);
             event.put(CalendarContract.Events.HAS_ALARM, 1);
             event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
-            if (mainActivity.getPackageManager().PERMISSION_DENIED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
+            if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
                 Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
                 long id = Long.parseLong(newEvent.getLastPathSegment());
                 ContentValues values = new ContentValues();
@@ -397,6 +441,69 @@ public class CustStu {
                 values.put("minutes", 10);
                 mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
             }
+        }
+    }
+
+    public void writeSingleExpe(CustExpe expe, String calID) {
+        Integer clsNum = 0;
+        String calendarEventURL = "content://com.android.calendar/events";
+        String calendarReminderURL = "content://com.android.calendar/reminders";
+        Integer startHour;
+        Integer startMinute;
+        Integer endHour;
+        Integer endMinute;
+        startHour = STARTHOURS[expe.nth * 2 - 1];
+        startMinute = STARTMINUTES[expe.nth * 2 - 1];
+        endHour = ENDHOURS[expe.nth * 2];
+        endMinute = ENDMINUTES[expe.nth * 2];
+        ContentValues event = new ContentValues();
+        event.put(CalendarContract.Events.TITLE, expe.expeName);
+        event.put(CalendarContract.Events.EVENT_LOCATION, expe.expeLocation);
+        event.put(CalendarContract.Events.CALENDAR_ID, calID);
+
+        Calendar current = Calendar.getInstance();
+        Integer year = current.get(Calendar.YEAR);
+        if (year % 100 != 0 && year % 4 == 0) {
+            MONTHDAYS[2] = 29;
+        } else if (year % 400 == 0) {
+            MONTHDAYS[2] = 29;
+        }
+        Integer month = current.get(Calendar.MONTH);
+        Integer day = current.get(Calendar.DATE);
+        Integer currentWeekday = current.get(Calendar.DAY_OF_WEEK);
+        currentWeekday = (currentWeekday == 1 ? 7 : currentWeekday - 1);
+        Integer expeWeekday = expe.expeWeekday;
+        day += (expeWeekday - currentWeekday);
+        Integer lastWeek = currentWeek;
+
+        ++clsNum;
+        Integer wk = expe.expeWeek - lastWeek;
+        lastWeek = expe.expeWeek;
+        day += wk * 7;
+        Integer monthDay = MONTHDAYS[month];
+        if (monthDay < day) {
+            day -= monthDay;
+            month += 1;
+            if (month == 12) {
+                month = 0;
+            }
+        }
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(year, month, day, startHour, startMinute);
+        long start = calendar.getTime().getTime();
+        calendar.set(year, month, day, endHour, endMinute);
+        long end = calendar.getTime().getTime();
+        event.put(CalendarContract.Events.DTSTART, start);
+        event.put(CalendarContract.Events.DTEND, end);
+        event.put(CalendarContract.Events.HAS_ALARM, 1);
+        event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
+        if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
+            Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
+            long id = Long.parseLong(newEvent.getLastPathSegment());
+            ContentValues values = new ContentValues();
+            values.put("event_id", id);
+            values.put("minutes", 10);
+            mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
         }
     }
 }
