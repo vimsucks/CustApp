@@ -1,6 +1,7 @@
 package tk.vimsucks.custapp;
 
 import android.Manifest;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -11,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.CalendarContract;
 import android.text.format.Time;
+import android.widget.Toast;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -325,7 +327,6 @@ public class CustStu {
     }
 
     public void writeCalendar() {
-        //TODO: Create a Calendar named "课程表"
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
         Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
@@ -367,14 +368,28 @@ public class CustStu {
                 writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID);
             } while (cursor.moveToNext());
         }
-        /*
-        for (CustExpe expe : classTable.expes) {
-            writeSingleExpe(expe, calID);
+    }
+
+    public void deleteCalendar() {
+        String calendarURL = "content://com.android.calendar/calendars";
+        String calID = "";
+        Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+        userCursor.moveToFirst();
+        while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+            userCursor.moveToNext();
         }
-        */
-        Message msg = new Message();
-        msg.obj = "导入完成";
-        mainActivity.toastHandler.sendMessage(msg);
+        if (userCursor.isAfterLast()) {
+            return;
+        } else {
+            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
+        }
+        Uri eventUri = Uri.parse("content://com.android.calendar/events");
+        Cursor cursor = mainActivity.getContentResolver().query(eventUri, new String[]{"_id"}, "calendar_id = " + calID, null, null); // calendar_id can change in new versions
+        while(cursor.moveToNext()) {
+            System.out.println("event " + cursor.getInt(0) + " deleted");
+            Uri deleteUri = ContentUris.withAppendedId(eventUri, cursor.getInt(0));
+            mainActivity.getContentResolver().delete(deleteUri, null, null);
+        }
     }
 
     public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, Integer is_half, String calID) {

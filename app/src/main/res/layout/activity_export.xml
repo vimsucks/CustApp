@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center_horizontal"
     android:orientation="vertical"
     android:paddingBottom="@dimen/activity_vertical_margin"
@@ -11,29 +12,23 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="tk.vimsucks.custapp.LoginActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal">
-
         <EditText
             android:id="@+id/current_week_edit_text"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:hint="本周是第几周?"
             android:inputType="numberDecimal"/>
 
-        <Button
+        <com.dd.CircularProgressButton
             android:id="@+id/export_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="导出到本地日历"
-            android:clickable="false"
-            android:onClick="onClick"/>
-
-    </LinearLayout>
+            android:layout_width="196dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="16dp"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            app:cpb_textComplete="@string/Complete"
+            app:cpb_textError="@string/Error"
+            app:cpb_textIdle="@string/Export" />
 
 
 </LinearLayout>

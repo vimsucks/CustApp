@@ -14,15 +14,24 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.dd.CircularProgressButton;
+
 public class ExportActivity extends AppCompatActivity {
 
     private CustStu stu;
-    Button exportButton;
+    CircularProgressButton exportButton;
     EditText currentWeekEditText;
     public Handler toastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             Toast.makeText(ExportActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    public Handler buttonHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            exportButton.setProgress(100);
         }
     };
 
@@ -32,7 +41,7 @@ public class ExportActivity extends AppCompatActivity {
         setContentView(R.layout.activity_export);
         stu = ((MyApp)getApplication()).stu;
         currentWeekEditText = (EditText)findViewById(R.id.current_week_edit_text);
-        exportButton = (Button)findViewById(R.id.export_button);
+        exportButton = (CircularProgressButton)findViewById(R.id.export_button);
         exportButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -43,24 +52,29 @@ public class ExportActivity extends AppCompatActivity {
                     return;
                 }
                 final String currentWeek = currentWeekEditText.getText().toString();
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        if (currentWeek.length() == 0) {
-                            Message msg = new Message();
-                            msg.obj = "请输入本周是第几周!!";
-                            toastHandler.sendMessage(msg);
-                        } else {
+                if (currentWeek.length() == 0) {
+                    Message msg = new Message();
+                    msg.obj = "请输入本周是第几周!!";
+                    toastHandler.sendMessage(msg);
+                } else {
+                    exportButton.setIndeterminateProgressMode(true); // turn on indeterminate progress
+                    exportButton.setProgress(50); // set progress > 0 & < 100 to display indeterminate progress
+                    // exportButton.setProgress(100); // set progress to 100 or -1 to indicate complete or error state
+                    // exportButton.setProgress(0); // set progress to 0 to switch back to normal state
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
                             Message msg = new Message();
                             msg.obj = "导入开始, 请稍等片刻...";
                             toastHandler.sendMessage(msg);
                             Integer week = Integer.parseInt(currentWeek);
                             stu.setCurrentWeek(week);
+                            stu.deleteCalendar();
                             stu.writeCalendar();
+                            buttonHandler.sendMessage(new Message());
                         }
-                    }
-                }).start();
+                    }).start();
+                }
             }
         });
         getSupportActionBar().setHomeButtonEnabled(true);
