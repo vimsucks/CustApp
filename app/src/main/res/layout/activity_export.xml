@@ -17,6 +17,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="本周是第几周?"
+            android:gravity="center"
+            android:maxLines="1"
             android:inputType="numberDecimal"/>
 
         <com.dd.CircularProgressButton
