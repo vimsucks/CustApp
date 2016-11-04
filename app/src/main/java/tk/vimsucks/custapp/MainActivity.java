@@ -2,15 +2,22 @@ package tk.vimsucks.custapp;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.SharedPreferencesCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.text.method.ScrollingMovementMethod;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -19,42 +26,24 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.alamkanak.weekview.MonthLoader;
+import com.alamkanak.weekview.WeekView;
+import com.alamkanak.weekview.WeekViewEvent;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private CustStu stu;
-    Button startButton;
-    ScrollView outputScrollView;
-    TextView outputTextView;
-    EditText usernameEditText;
-    EditText passwordEditText;
     EditText currentWeekEditText;
     EditText weekEditText;
-    Button exportButton;
+    Toolbar toolbar;
+    //WeekView mWeekView;
     boolean isLogin = false;
     boolean isClassTableAcquired = false;
     boolean isExpeTableAcquired = false;
-    private Handler outputHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            outputTextView.append((String) msg.obj + "\n");
-            // 在TextView的append后面马上调用fullScroll, 无法滚动到真正的底部
-            // 因为Android下很多函数都是基于消息的，用消息队列来保证同步，所以函数调用多数是异步操作的。
-            // 有消息队列是异步的，消息队列先滚动到底部，然后TextView的append方法显示。所以无法正确滚动到底部。
-            if (outputScrollView != null) {
-                outputScrollView.post(new Runnable() {
-                    public void run() {
-                        outputScrollView.fullScroll(ScrollView.FOCUS_DOWN);
-                    }
-                });
-            }
-        }
-    };
-    private Handler outputClearHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            outputTextView.setText("");
-        }
-    };
+    SharedPreferences  accountPref;
     public Handler toastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -65,75 +54,51 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         setContentView(R.layout.activity_main);
         stu = new CustStu(this);
         initViews();;
+        SharedPreferences  accountPref = getSharedPreferences("account", 0);
+        if (accountPref.getBoolean("isLogged", false)) {
+            setSupportActionBar(toolbar);
+            final String username = accountPref.getString("username", "233");
+            final String password = accountPref.getString("password", "233");
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    isLogin = stu.login(username, password);
+                    stu.getCurrentWeek(0);
+                    isClassTableAcquired = stu.getClassTable();
+                    isExpeTableAcquired = stu.getExpeTable();
+                }
+            }).start();
+        } else {
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(intent);
+        }
     }
 
     private void initViews() {
-        startButton = (Button) findViewById(R.id.start_button);
-        outputScrollView = (ScrollView)findViewById(R.id.output_scroll_view);
-        outputTextView = (TextView)findViewById(R.id.output_text_view);
-        outputTextView.setMovementMethod(ScrollingMovementMethod.getInstance());
-        usernameEditText = (EditText)findViewById(R.id.username_edit_text);
-        passwordEditText = (EditText)findViewById(R.id.password_edit_text);
         currentWeekEditText = (EditText)findViewById(R.id.current_edit_text);
+        /*
+        mWeekView = (WeekView)findViewById(R.id.week_view);
+        mWeekView.setMonthChangeListener(new MonthLoader.MonthChangeListener() {
+            @Override
+            public List<? extends WeekViewEvent> onMonthChange(int newYear, int newMonth) {
+                List<WeekViewEvent> events = new ArrayList<WeekViewEvent>();
+                ArrayList<WeekViewEvent> newEvents = getNewEvents(newYear, newMonth);
+                events.addAll(newEvents);
+                return events;
+            }
+        });
+        */
         weekEditText = (EditText)findViewById(R.id.week_edit_text);
-        exportButton = (Button)findViewById(R.id.export_button);
+        toolbar = (Toolbar)findViewById(R.id.tool_bar);
     }
 
     public void onClick(View view) {
-        if (view.getId() == R.id.start_button) {
-            final Handler startHandler = new Handler() {
-                @Override
-                public void handleMessage(Message msg) {
-                    startButton.setText(msg.obj.toString());
-                }
-            };
-
-            new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    startButton.setClickable(false);
-                    Message msg = new Message();
-                    msg.obj = "登录中...";
-                    startHandler.sendMessage(msg);
-                    EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
-                    Integer week = Integer.parseInt(weekEditText.getText().toString());
-                    isLogin = stu.login(usernameEditText.getText().toString(), passwordEditText.getText().toString());
-                    if (isLogin) {
-                        System.out.println("Login successful");
-                        stu.getCurrentWeek(week);
-                        isClassTableAcquired = stu.getClassTable();
-                        isExpeTableAcquired = stu.getExpeTable();
-                        if (isClassTableAcquired && isExpeTableAcquired) {
-                            stu.getWeekClassTable();
-                            outputClearHandler.sendMessage(new Message());
-                            stu.updateClassOutput(outputHandler);
-                            startButton.setClickable(false);
-                            exportButton.setClickable(true);
-                            msg = new Message();
-                            msg.obj = "登录成功";
-                            startHandler.sendMessage(msg);
-                        }
-                    } else {
-                        startButton.setClickable(true);
-                        msg = new Message();
-                        msg.obj = "登录";
-                        startHandler.sendMessage(msg);
-                    }
-                }
-            }).start();
-
-            // Auto scroll to the bottom when text is updated
-            View currentView = this.getCurrentFocus();
-            if (currentView != null) {
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(currentView.getWindowToken(), 0);
-            }
-        } else if (view.getId() == R.id.week_minus_button) {
+        if (view.getId() == R.id.week_minus_button) {
             EditText weekEditText = (EditText) findViewById(R.id.week_edit_text);
             Integer week = Integer.parseInt(weekEditText.getText().toString());
             if (week > 1) {
@@ -142,13 +107,10 @@ public class MainActivity extends AppCompatActivity {
             }
             if (isLogin) {
                 stu.getCurrentWeek(week);
-                stu.getWeekClassTable();
-                outputClearHandler.sendMessage(new Message());
-                stu.updateClassOutput(outputHandler);
             } else {
                 Message msg = new Message();
                 msg.obj = "Please onClick first!";
-                outputHandler.sendMessage(msg);
+                toastHandler.sendMessage(msg);
             }
         } else if (view.getId() == R.id.week_plus_button) {
             Integer week = Integer.parseInt(weekEditText.getText().toString());
@@ -158,13 +120,10 @@ public class MainActivity extends AppCompatActivity {
             }
             if (isLogin) {
                 stu.getCurrentWeek(week);
-                stu.getWeekClassTable();
-                outputClearHandler.sendMessage(new Message());
-                stu.updateClassOutput(outputHandler);
             } else {
                 Message msg = new Message();
                 msg.obj = "Please onClick first!";
-                outputHandler.sendMessage(msg);
+                toastHandler.sendMessage(msg);
             }
         } else if (view.getId() == R.id.export_button) {
             if (!isLogin) {
@@ -217,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
         {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
             {
-                onClick(exportButton);
+                //onClick(exportButton);
             } else
             {
                 // Permission Denied
@@ -226,6 +185,41 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        } else if (id == R.id.action_export) {
+            Intent intent = new Intent(MainActivity.this, ExportActivity.class);
+            startActivity(intent);
+        } else if (id == R.id.action_exit) {
+            SharedPreferences  accountPref = getSharedPreferences("account", 0);
+            SharedPreferences.Editor editor = accountPref.edit();
+            editor.remove("isLogged");
+            // editor.remove("username");
+            // editor.remove("password");
+            editor.commit();
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 }
 

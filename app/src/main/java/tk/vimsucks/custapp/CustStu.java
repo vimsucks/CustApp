@@ -9,6 +9,8 @@ import android.os.Message;
 import android.provider.CalendarContract;
 import android.text.format.Time;
 
+import com.alamkanak.weekview.WeekViewEvent;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -41,14 +43,13 @@ public class CustStu {
     private String password;
     private ArrayList<CustClass> classTable = new ArrayList<>();
     private ArrayList<CustExpe> expeTable = new ArrayList<>();
-    private Map<Integer, TreeSet<CustSimpClass>> weekdayClassTable;
     private Integer currentWeek;
     static private MainActivity mainActivity;
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private final Integer[] STARTHOURS = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private final Integer[] ENDHOURS = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
-    private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 40, 45};
-    private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 25, 30};
+    private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 45, 35};
+    private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 30, 20};
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -133,7 +134,7 @@ public class CustStu {
             Element nameEle = doc.getElementById("StudentNameValueLabel");
             if (nameEle == null) {
                 Message msg = new Message();
-                msg.obj = "登录失败,服务器炸啦";
+                msg.obj = "登录失败，可能是密码错误";
                 mainActivity.toastHandler.sendMessage(msg);
                 return false;
             } else {
@@ -251,7 +252,6 @@ public class CustStu {
                         tds.get(4).text()
                 );
                 expeTable.add(expe);
-                expe.print();
             }
             Message msg = new Message();
             msg.obj = "成功获取实验表";
@@ -267,39 +267,6 @@ public class CustStu {
 
     public void getCurrentWeek(Integer week) {
         currentWeek = week;
-    }
-
-    public void getWeekClassTable() {
-        weekdayClassTable = new HashMap<>();
-        Integer i = 0;
-        for (CustClass cls : classTable) {
-            if (cls.weeks.contains(currentWeek)) {
-                if (!weekdayClassTable.containsKey(cls.weekday)) {
-                    weekdayClassTable.put(cls.weekday, new TreeSet<CustSimpClass>());
-                }
-                weekdayClassTable.get(cls.weekday).add(new CustSimpClass(cls, currentWeek));
-                ++i;
-            }
-        }
-
-        Object[] keys = weekdayClassTable.keySet().toArray();
-        Arrays.sort(keys);
-    }
-
-    public void updateClassOutput(Handler handler) {
-        Message msg;
-        Object[] keys = weekdayClassTable.keySet().toArray();
-        Arrays.sort(keys);
-        for (Object key : keys) {
-            msg = new Message();
-            msg.obj = "星期" + key.toString();
-            handler.sendMessage(msg);
-            for (CustSimpClass cls : weekdayClassTable.get(key)) {
-                msg = new Message();
-                msg.obj = cls.getClassInfo();
-                handler.sendMessage(msg);
-            }
-        }
     }
 
     public static Uri createCalendar() {
