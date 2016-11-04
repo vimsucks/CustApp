@@ -2,14 +2,15 @@ package tk.vimsucks.custapp;
 
 import android.Manifest;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.CalendarContract;
 import android.text.format.Time;
-
-import com.alamkanak.weekview.WeekViewEvent;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -39,10 +40,10 @@ import okhttp3.Response;
 
 public class CustStu {
 
-    private String username;
+    public String username;
     private String password;
-    private ArrayList<CustClass> classTable = new ArrayList<>();
-    private ArrayList<CustExpe> expeTable = new ArrayList<>();
+    ClassTable classTable = new ClassTable();
+    ClassDatabase classDatabase;
     private Integer currentWeek;
     static private MainActivity mainActivity;
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
@@ -84,19 +85,13 @@ public class CustStu {
 
     public CustStu(MainActivity act) {
         mainActivity = act;
-    }
-
-    private void sysLog(String log) {
-        System.out.print(log);
-    }
-
-    private void sysLog(Integer log) {
-        System.out.print(log);
+        classDatabase = new ClassDatabase(mainActivity);
     }
 
     public boolean login(String usrName, String passwd) {
         username = usrName;
         password = passwd;
+        System.out.print("!!== try login " + username + " " + password + " ==!!");
         try {
             String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
@@ -152,27 +147,62 @@ public class CustStu {
         }
     }
 
-    public boolean getClassTable() {
-        if (!classTable.isEmpty()) {
+    public boolean getClassAndExpe() {
+        if (getClassTable() && getExpeTable()) {
+            SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
+            SharedPreferences.Editor editor = accountPref.edit();
+            editor.putString("dbUser", username);
+            editor.commit();
             return true;
+        } else {
+            return false;
         }
-        String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
-        try {
-            request = requestBuilder
-                    .url(classUrl)
-                    .get()
-                    .build();
-            response = httpClient.newCall(request).execute();
-            String html = response.body().string();
-            Document doc = Jsoup.parse(html);
-            Elements contentCells = doc.getElementsByClass("ContentCell");
-            Integer i = 0;
-            for (Element contentCell : contentCells) {
-                ++i;
-                Elements tables = contentCell.getElementsByTag("table");
-                if (tables.size() > 1) {
-                    tables.remove(0);
-                    for (Element table : tables) {
+    }
+
+    public boolean getClassTable() {
+        SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
+        if (!accountPref.getString("dbUser", "").equals(username)) {
+            if (!classTable.classes.isEmpty()) {
+                return true;
+            }
+            String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
+            try {
+                request = requestBuilder
+                        .url(classUrl)
+                        .get()
+                        .build();
+                response = httpClient.newCall(request).execute();
+                String html = response.body().string();
+                Document doc = Jsoup.parse(html);
+                Elements contentCells = doc.getElementsByClass("ContentCell");
+                Integer i = 0;
+                for (Element contentCell : contentCells) {
+                    ++i;
+                    Elements tables = contentCell.getElementsByTag("table");
+                    if (tables.size() > 1) {
+                        tables.remove(0);
+                        for (Element table : tables) {
+                            Elements tds = table.getElementsByTag("td");
+                            if (tds.first().text().trim().length() <= 1) {
+                                continue;
+                            } else {
+                                Elements tdsAfter = new Elements();
+                                for (Element td : tds) {
+                                    if (td.text().trim().length() > 1) {
+                                        tdsAfter.add(td);
+                                    }
+                                }
+                                tdsAfter = new Elements(tdsAfter.subList(0, 4));
+                                classTable.classes.add(new CustClass(tdsAfter.get(0).text(),
+                                        tdsAfter.get(1).text(),
+                                        tdsAfter.get(2).text(),
+                                        tdsAfter.get(3).text(),
+                                        i % 7 == 0 ? 7 : i % 7,
+                                        i % 7 == 0 ? i / 7 : i / 7 + 1));
+                            }
+                        }
+                    } else {
+                        Element table = tables.first();
                         Elements tds = table.getElementsByTag("td");
                         if (tds.first().text().trim().length() <= 1) {
                             continue;
@@ -184,7 +214,7 @@ public class CustStu {
                                 }
                             }
                             tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                            classTable.add(new CustClass(tdsAfter.get(0).text(),
+                            classTable.classes.add(new CustClass(tdsAfter.get(0).text(),
                                     tdsAfter.get(1).text(),
                                     tdsAfter.get(2).text(),
                                     tdsAfter.get(3).text(),
@@ -192,80 +222,75 @@ public class CustStu {
                                     i % 7 == 0 ? i / 7 : i / 7 + 1));
                         }
                     }
-                } else {
-                    Element table = tables.first();
-                    Elements tds = table.getElementsByTag("td");
-                    if (tds.first().text().trim().length() <= 1) {
-                        continue;
-                    } else {
-                        Elements tdsAfter = new Elements();
-                        for (Element td : tds) {
-                            if (td.text().trim().length() > 1) {
-                                tdsAfter.add(td);
-                            }
-                        }
-                        tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                        classTable.add(new CustClass(tdsAfter.get(0).text(),
-                                tdsAfter.get(1).text(),
-                                tdsAfter.get(2).text(),
-                                tdsAfter.get(3).text(),
-                                i % 7 == 0 ? 7 : i % 7,
-                                i % 7 == 0 ? i / 7 : i / 7 + 1));
+                }
+                for (CustClass cls : classTable.classes) {
+                    for (Integer week : cls.weeks) {
+                        classDatabase.insert(cls.className, cls.classTeacher, cls.classLocation, week, cls.weekday, cls.nth, (cls.isHalf ? 1 : 0));
                     }
                 }
+                Message msg = new Message();
+                msg.obj = "成功获取课表";
+                mainActivity.toastHandler.sendMessage(msg);
+                return true;
+            } catch (IOException e) {
+                Message msg = new Message();
+                msg.obj = "获取课表失败,服务器炸啦";
+                mainActivity.toastHandler.sendMessage(msg);
+                return false;
             }
-            Message msg = new Message();
-            msg.obj = "成功获取课表";
-            mainActivity.toastHandler.sendMessage(msg);
+        } else {
             return true;
-        } catch (IOException e) {
-            Message msg = new Message();
-            msg.obj = "获取课表失败,服务器炸啦";
-            mainActivity.toastHandler.sendMessage(msg);
-            return false;
         }
     }
 
     public boolean getExpeTable() {
-        if (!expeTable.isEmpty()) {
-            return true;
-        }
-        String expeUrl = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
-        try {
-            request = requestBuilder
-                    .url(expeUrl)
-                    .get()
-                    .build();
-            response = httpClient.newCall(request).execute();
-            String html = response.body().string();
-            Document doc = Jsoup.parse(html);
-            Elements trs = doc.getElementsByTag("tr");
-            trs.remove(0);
-            Integer i = 0;
-            for (Element tr : trs) {
-                ++i;
-                Elements tds = tr.getElementsByTag("td");
-                CustExpe expe = new CustExpe(tds.get(0).text() + "-" + tds.get(1).text(),
-                        tds.get(5).text(),
-                        tds.get(2).text(),
-                        tds.get(3).text(),
-                        tds.get(4).text()
-                );
-                expeTable.add(expe);
+        SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
+        if (!accountPref.getString("dbUser", "").equals(username)) {
+            if (!classTable.expes.isEmpty()) {
+                return true;
             }
-            Message msg = new Message();
-            msg.obj = "成功获取实验表";
-            mainActivity.toastHandler.sendMessage(msg);
+            String expeUrl = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
+            try {
+                request = requestBuilder
+                        .url(expeUrl)
+                        .get()
+                        .build();
+                response = httpClient.newCall(request).execute();
+                String html = response.body().string();
+                Document doc = Jsoup.parse(html);
+                Elements trs = doc.getElementsByTag("tr");
+                trs.remove(0);
+                Integer i = 0;
+                for (Element tr : trs) {
+                    ++i;
+                    Elements tds = tr.getElementsByTag("td");
+                    CustExpe expe = new CustExpe(tds.get(0).text() + "-" + tds.get(1).text(),
+                            tds.get(5).text(),
+                            tds.get(2).text(),
+                            tds.get(3).text(),
+                            tds.get(4).text()
+                    );
+                    classTable.expes.add(expe);
+                }
+                for (CustExpe expe : classTable.expes) {
+                    classDatabase.insert(expe.expeName, "", expe.expeLocation, expe.expeWeek, expe.expeWeekday, expe.nth, 0);
+                }
+                Message msg = new Message();
+                msg.obj = "成功获取实验表";
+                mainActivity.toastHandler.sendMessage(msg);
+                return true;
+            } catch (IOException e) {
+                Message msg = new Message();
+                msg.obj = "获取课表失败,服务器炸啦";
+                mainActivity.toastHandler.sendMessage(msg);
+                return false;
+            }
+        } else {
             return true;
-        } catch (IOException e) {
-            Message msg = new Message();
-            msg.obj = "获取课表失败,服务器炸啦";
-            mainActivity.toastHandler.sendMessage(msg);
-            return false;
         }
     }
 
-    public void getCurrentWeek(Integer week) {
+    public void setCurrentWeek(Integer week) {
         currentWeek = week;
     }
 
@@ -328,18 +353,31 @@ public class CustStu {
             }
             calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         }
-        for (CustClass cls : classTable) {
-            writeSingleClass(cls, calID);
+        SQLiteDatabase db = classDatabase.getWritableDatabase();
+        Cursor cursor = db.query("class_table", null, null, null, null, null, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String name = cursor.getString(cursor.getColumnIndex("class_name"));
+                String teacher = cursor.getString(cursor.getColumnIndex("class_teacher"));
+                String location = cursor.getString(cursor.getColumnIndex("class_location"));
+                Integer week = cursor.getInt(cursor.getColumnIndex("week"));
+                Integer weekday = cursor.getInt(cursor.getColumnIndex("weekday"));
+                Integer nth = cursor.getInt(cursor.getColumnIndex("nth"));
+                Integer is_half = cursor.getInt(cursor.getColumnIndex("is_half"));
+                writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID);
+            } while (cursor.moveToNext());
         }
-        for (CustExpe expe : expeTable) {
+        /*
+        for (CustExpe expe : classTable.expes) {
             writeSingleExpe(expe, calID);
         }
+        */
         Message msg = new Message();
         msg.obj = "导入完成";
         mainActivity.toastHandler.sendMessage(msg);
     }
 
-    public void writeSingleClass(CustClass cls, String calID) {
+    public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, Integer is_half, String calID) {
         Integer clsNum = 0;
         String calendarEventURL = "content://com.android.calendar/events";
         String calendarReminderURL = "content://com.android.calendar/reminders";
@@ -347,21 +385,21 @@ public class CustStu {
         Integer startMinute;
         Integer endHour;
         Integer endMinute;
-        if (cls.isHalf) {
-            startHour = STARTHOURS[cls.nth * 2 - 1];
-            startMinute = STARTMINUTES[cls.nth * 2 - 1];
-            endHour = ENDHOURS[cls.nth * 2 - 1];
-            endMinute = ENDMINUTES[cls.nth * 2 - 1];
+        if (is_half == 1) {
+            startHour = STARTHOURS[nth * 2 - 1];
+            startMinute = STARTMINUTES[nth * 2 - 1];
+            endHour = ENDHOURS[nth * 2 - 1];
+            endMinute = ENDMINUTES[nth * 2 - 1];
         } else {
-            startHour = STARTHOURS[cls.nth * 2 - 1];
-            startMinute = STARTMINUTES[cls.nth * 2 - 1];
-            endHour = ENDHOURS[cls.nth * 2];
-            endMinute = ENDMINUTES[cls.nth * 2];
+            startHour = STARTHOURS[nth * 2 - 1];
+            startMinute = STARTMINUTES[nth * 2 - 1];
+            endHour = ENDHOURS[nth * 2];
+            endMinute = ENDMINUTES[nth * 2];
         }
         ContentValues event = new ContentValues();
-        event.put(CalendarContract.Events.TITLE, cls.className);
-        event.put(CalendarContract.Events.DESCRIPTION, "教师: " + cls.classTeacher);
-        event.put(CalendarContract.Events.EVENT_LOCATION, cls.classLocation);
+        event.put(CalendarContract.Events.TITLE, name);
+        event.put(CalendarContract.Events.DESCRIPTION, "教师: " + teacher);
+        event.put(CalendarContract.Events.EVENT_LOCATION, location);
         event.put(CalendarContract.Events.CALENDAR_ID, calID);
 
         Calendar current = Calendar.getInstance();
@@ -375,77 +413,12 @@ public class CustStu {
         Integer day = current.get(Calendar.DATE);
         Integer currentWeekday = current.get(Calendar.DAY_OF_WEEK);
         currentWeekday = (currentWeekday == 1 ? 7 : currentWeekday - 1);
-        Integer clsWeekday = cls.weekday;
+        Integer clsWeekday = weekday;
         day += (clsWeekday - currentWeekday);
         Integer lastWeek = currentWeek;
-        for (Integer week : cls.weeks) {
-            ++clsNum;
-            Integer wk = week - lastWeek;
-            lastWeek = week;
-            day += wk * 7;
-            Integer monthDay = MONTHDAYS[month];
-            if (monthDay < day) {
-                day -= monthDay;
-                month += 1;
-                if (month == 12) {
-                    month = 0;
-                }
-            }
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(year, month, day, startHour, startMinute);
-            long start = calendar.getTime().getTime();
-            calendar.set(year, month, day, endHour, endMinute);
-            long end = calendar.getTime().getTime();
-            event.put(CalendarContract.Events.DTSTART, start);
-            event.put(CalendarContract.Events.DTEND, end);
-            event.put(CalendarContract.Events.HAS_ALARM, 1);
-            event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
-            if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
-                Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
-                long id = Long.parseLong(newEvent.getLastPathSegment());
-                ContentValues values = new ContentValues();
-                values.put("event_id", id);
-                values.put("minutes", 10);
-                mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
-            }
-        }
-    }
-
-    public void writeSingleExpe(CustExpe expe, String calID) {
-        Integer clsNum = 0;
-        String calendarEventURL = "content://com.android.calendar/events";
-        String calendarReminderURL = "content://com.android.calendar/reminders";
-        Integer startHour;
-        Integer startMinute;
-        Integer endHour;
-        Integer endMinute;
-        startHour = STARTHOURS[expe.nth * 2 - 1];
-        startMinute = STARTMINUTES[expe.nth * 2 - 1];
-        endHour = ENDHOURS[expe.nth * 2];
-        endMinute = ENDMINUTES[expe.nth * 2];
-        ContentValues event = new ContentValues();
-        event.put(CalendarContract.Events.TITLE, expe.expeName);
-        event.put(CalendarContract.Events.EVENT_LOCATION, expe.expeLocation);
-        event.put(CalendarContract.Events.CALENDAR_ID, calID);
-
-        Calendar current = Calendar.getInstance();
-        Integer year = current.get(Calendar.YEAR);
-        if (year % 100 != 0 && year % 4 == 0) {
-            MONTHDAYS[2] = 29;
-        } else if (year % 400 == 0) {
-            MONTHDAYS[2] = 29;
-        }
-        Integer month = current.get(Calendar.MONTH);
-        Integer day = current.get(Calendar.DATE);
-        Integer currentWeekday = current.get(Calendar.DAY_OF_WEEK);
-        currentWeekday = (currentWeekday == 1 ? 7 : currentWeekday - 1);
-        Integer expeWeekday = expe.expeWeekday;
-        day += (expeWeekday - currentWeekday);
-        Integer lastWeek = currentWeek;
-
         ++clsNum;
-        Integer wk = expe.expeWeek - lastWeek;
-        lastWeek = expe.expeWeek;
+        Integer wk = week - lastWeek;
+        lastWeek = week;
         day += wk * 7;
         Integer monthDay = MONTHDAYS[month];
         if (monthDay < day) {
@@ -473,4 +446,5 @@ public class CustStu {
             mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
         }
     }
+
 }

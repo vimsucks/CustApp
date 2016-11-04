@@ -46,10 +46,12 @@ import okhttp3.Response;
 public class LoginActivity extends AppCompatActivity {
 
     // UI references.
+    MyApp myApp = (MyApp)getApplication();
     private EditText mStuIDView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+    private Button signInButton;
 
     public Handler toastHandler = new Handler() {
         @Override
@@ -66,6 +68,20 @@ public class LoginActivity extends AppCompatActivity {
         SharedPreferences accountPref = getSharedPreferences("account", 0);
         mStuIDView = (EditText) findViewById(R.id.stuID);
         mStuIDView.setText(accountPref.getString("username", ""));
+        signInButton = (Button)findViewById(R.id.sign_in_button);
+        signInButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String username = mStuIDView.getText().toString();
+                        String password = mPasswordView.getText().toString();
+                        attemptLogin(username, password);
+                    }
+                }).start();
+            }
+        });
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setText(accountPref.getString("password", ""));
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -75,7 +91,9 @@ public class LoginActivity extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            attemptLogin();
+                            String username = mStuIDView.getText().toString();
+                            String password = mPasswordView.getText().toString();
+                            attemptLogin(username, password);
                         }
                     }).start();
                     return true;
@@ -91,7 +109,9 @@ public class LoginActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        attemptLogin();
+                        String username = mStuIDView.getText().toString();
+                        String password = mPasswordView.getText().toString();
+                        attemptLogin(username, password);
                     }
                 }).start();
             }
@@ -101,100 +121,19 @@ public class LoginActivity extends AppCompatActivity {
         mProgressView = findViewById(R.id.login_progress);
     }
 
-    Boolean attemptLogin() {
-        OkHttpClient httpClient = new OkHttpClient.Builder()
-                .cookieJar(new CookieJar() {
-                    //non-persistent CookieJar with an ACCEPT_ALL policy
-                    private final Set<Cookie> cookieStore = new LinkedHashSet<>();
-
-                    @Override
-                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-                        cookieStore.addAll(cookies);
-                    }
-
-                    @Override
-                    public List<Cookie> loadForRequest(HttpUrl url) {
-                        List<Cookie> matchingCookies = new ArrayList<>();
-                        Iterator<Cookie> it = cookieStore.iterator();
-                        while (it.hasNext()) {
-                            Cookie cookie = it.next();
-                            if (cookie.expiresAt() < System.currentTimeMillis()) {
-                                it.remove();
-                            } else if (cookie.matches(url)) {
-                                matchingCookies.add(cookie);
-                            }
-                        }
-                        return matchingCookies;
-                    }
-                })
-                .build();
-        Request.Builder requestBuilder = new Request.Builder()
-                .addHeader("User-Agent", "Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36");
-        Request request;
-        Response response;
-        String username = mStuIDView.getText().toString();
-        String password = mPasswordView.getText().toString();
-        try {
-            String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
-            request = requestBuilder
-                    .url(loginUrl)
-                    .get()
-                    .build();
-            response = httpClient.newCall(request).execute();
-            String html = response.body().string();
-            response.body().close();
-            Document doc = Jsoup.parse(html);
-            String viewState = doc.getElementById("__VIEWSTATE").attr("value");
-            String eventVal = doc.getElementById("__EVENTVALIDATION").attr("value");
-            RequestBody formBody = new FormBody.Builder()
-                    .add("__VIEWSTATE", viewState)
-                    .add("__EVENTVALIDATION", eventVal)
-                    .add("txtUserName", username)
-                    .add("txtPassWord", password)
-                    .add("Button1", "登录")
-                    .build();
-            request = requestBuilder
-                    .url(loginUrl)
-                    .post(formBody)
-                    .build();
-            response = httpClient.newCall(request).execute();
-            response.body().close();
-            String indexUrl = "http://jwgl.cust.edu.cn/teachweb/index1.aspx";
-            request = requestBuilder
-                    .url(indexUrl)
-                    .get()
-                    .build();
-            response = httpClient.newCall(request).execute();
-            html = response.body().string();
-            response.body().close();
-            doc = Jsoup.parse(html);
-            Element nameEle = doc.getElementById("StudentNameValueLabel");
-            if (nameEle == null) {
-                Message msg = new Message();
-                msg.obj = "登录失败，可能是密码错误";
-                this.toastHandler.sendMessage(msg);
-                return false;
-            } else {
-                String stuName = nameEle.text();
-                Message msg = new Message();
-                msg.obj = stuName + "登录成功";
-                this.toastHandler.sendMessage(msg);
-                SharedPreferences accountPref = getSharedPreferences("account", 0);
-                SharedPreferences.Editor editor = accountPref.edit();
-                editor.putBoolean("isLogged", true);
-                editor.putString("username", username);
-                editor.putString("password", password);
-                editor.commit();
-                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                startActivity(intent);
-                return true;
-            }
-        } catch (IOException e) {
-            Message msg = new Message();
-            msg.obj = "登录失败,服务器炸啦";
-            this.toastHandler.sendMessage(msg);
-            return false;
+    Boolean attemptLogin(String username, String password) {
+        Boolean success = myApp.stu.login(username, password);
+        if (success) {
+            SharedPreferences  accountPref = getSharedPreferences("account", 0);
+            SharedPreferences.Editor editor = accountPref.edit();
+            editor.putBoolean("isLogged", true);
+            editor.putString("username", username);
+            editor.putString("password", password);
+            editor.commit();
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            startActivityForResult(intent, 1);
         }
+        return success;
     }
 
 }

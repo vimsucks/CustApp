@@ -1,7 +1,6 @@
 package tk.vimsucks.custapp;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -10,32 +9,19 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.SharedPreferencesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.Toast;
-
-import com.alamkanak.weekview.MonthLoader;
-import com.alamkanak.weekview.WeekView;
-import com.alamkanak.weekview.WeekViewEvent;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private CustStu stu;
+    private MyApp myApp = (MyApp)getApplication();
     EditText currentWeekEditText;
     EditText weekEditText;
     Toolbar toolbar;
@@ -55,22 +41,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         setContentView(R.layout.activity_main);
-        stu = new CustStu(this);
-        initViews();;
+        myApp.stu = new CustStu(this);
+        initViews();
         SharedPreferences  accountPref = getSharedPreferences("account", 0);
         if (accountPref.getBoolean("isLogged", false)) {
-            setSupportActionBar(toolbar);
             final String username = accountPref.getString("username", "233");
             final String password = accountPref.getString("password", "233");
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    isLogin = stu.login(username, password);
-                    stu.getCurrentWeek(0);
-                    isClassTableAcquired = stu.getClassTable();
-                    isExpeTableAcquired = stu.getExpeTable();
+                    myApp.stu.login(username, password);
+                    myApp.stu.setCurrentWeek(0);
+                    myApp.stu.getClassAndExpe();
+                    myApp.stu.classTable.printAll();
                 }
             }).start();
         } else {
@@ -79,22 +63,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 1) {
+
+        }
+    }
+    */
+
+
     private void initViews() {
-        currentWeekEditText = (EditText)findViewById(R.id.current_edit_text);
-        /*
-        mWeekView = (WeekView)findViewById(R.id.week_view);
-        mWeekView.setMonthChangeListener(new MonthLoader.MonthChangeListener() {
-            @Override
-            public List<? extends WeekViewEvent> onMonthChange(int newYear, int newMonth) {
-                List<WeekViewEvent> events = new ArrayList<WeekViewEvent>();
-                ArrayList<WeekViewEvent> newEvents = getNewEvents(newYear, newMonth);
-                events.addAll(newEvents);
-                return events;
-            }
-        });
-        */
+        currentWeekEditText = (EditText)findViewById(R.id.current_week_edit_text);
         weekEditText = (EditText)findViewById(R.id.week_edit_text);
         toolbar = (Toolbar)findViewById(R.id.tool_bar);
+        setSupportActionBar(toolbar);
     }
 
     public void onClick(View view) {
@@ -106,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
                 weekEditText.setText(String.valueOf(week));
             }
             if (isLogin) {
-                stu.getCurrentWeek(week);
+                myApp.stu.setCurrentWeek(week);
             } else {
                 Message msg = new Message();
                 msg.obj = "Please onClick first!";
@@ -119,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
                 weekEditText.setText(String.valueOf(week));
             }
             if (isLogin) {
-                stu.getCurrentWeek(week);
+                myApp.stu.setCurrentWeek(week);
             } else {
                 Message msg = new Message();
                 msg.obj = "Please onClick first!";
@@ -160,8 +143,8 @@ public class MainActivity extends AppCompatActivity {
                         Message msg = new Message();
                         msg.obj = "导入开始, 请稍等片刻...";
                         toastHandler.sendMessage(msg);
-                        stu.getCurrentWeek(Integer.parseInt(currentWeek));
-                        stu.writeCalendar();
+                        myApp.stu.setCurrentWeek(Integer.parseInt(currentWeek));
+                        myApp.stu.writeCalendar();
                     }
                 }
             }).start();
@@ -211,12 +194,13 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences  accountPref = getSharedPreferences("account", 0);
             SharedPreferences.Editor editor = accountPref.edit();
             editor.remove("isLogged");
+            editor.remove("dbUser");
+            editor.commit();
             // editor.remove("username");
             // editor.remove("password");
-            editor.commit();
+            myApp.stu.classDatabase.removeAll();
             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
             startActivity(intent);
-            finish();
         }
 
         return super.onOptionsItemSelected(item);

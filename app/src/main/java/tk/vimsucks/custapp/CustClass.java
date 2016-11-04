@@ -10,7 +10,6 @@ public class CustClass {
     public String className;
     public String classTeacher;
     public String classLocation;
-    public String classTime;
     public Integer weekday;
     public Integer nth;
     public Set<Integer> weeks = new TreeSet<>();
@@ -75,16 +74,8 @@ public class CustClass {
         }
     }
 
-    public void printWeeks() {
-        System.out.print(className);
-        for (Integer i : weeks) {
-            System.out.print(",");
-            System.out.print(i);
-        }
-        System.out.print("=");
-        System.out.print(weekday);
-        System.out.print(" ");
-        System.out.print(nth);
-        System.out.println();
+    @Override
+    public String toString() {
+        return className + " " + classLocation + " " + weekday + " " + nth + " " + weeks.toString();
     }
 }

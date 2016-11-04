@@ -58,12 +58,9 @@ public class CustExpe {
         return (Integer.parseInt(it) + 1) / 2;
     }
 
-    public void print() {
-        System.out.println(expeName);
-        System.out.println(expeLocation);
-        System.out.println(expeWeek);
-        System.out.println(expeWeekday);
-        System.out.println(nth);
+    @Override
+    public String toString() {
+        return expeName + " " + expeLocation + " " + expeWeekday + nth;
     }
 }
 
