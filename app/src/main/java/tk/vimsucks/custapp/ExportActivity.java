@@ -64,9 +64,6 @@ public class ExportActivity extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            Message msg = new Message();
-                            msg.obj = "导入开始, 请稍等片刻...";
-                            toastHandler.sendMessage(msg);
                             Integer week = Integer.parseInt(currentWeek);
                             stu.setCurrentWeek(week);
                             stu.deleteCalendar();

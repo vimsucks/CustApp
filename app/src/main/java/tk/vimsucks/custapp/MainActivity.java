@@ -108,46 +108,6 @@ public class MainActivity extends AppCompatActivity {
                 msg.obj = "Please onClick first!";
                 toastHandler.sendMessage(msg);
             }
-        } else if (view.getId() == R.id.export_button) {
-            if (!isLogin) {
-                Message msg = new Message();
-                msg.obj = "请先登录";
-                toastHandler.sendMessage(msg);
-                return;
-            }
-            if (!isClassTableAcquired) {
-                Message msg = new Message();
-                msg.obj = "未获取课表, 请重新点击登录";
-                toastHandler.sendMessage(msg);
-                return;
-            }
-            if (getPackageManager().PERMISSION_DENIED == getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, getPackageName())) {
-                Message msg = new Message();
-                msg.obj = "请赋予本APP写入日历的权限!";
-                toastHandler.sendMessage(msg);
-                if (Build.VERSION.SDK_INT >= 23) {
-                    ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
-                }
-                return;
-            }
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-
-                    String currentWeek = currentWeekEditText.getText().toString();
-                    if (currentWeek.length() == 0) {
-                        Message msg = new Message();
-                        msg.obj = "请输入本周是第几周!!";
-                        toastHandler.sendMessage(msg);
-                    } else {
-                        Message msg = new Message();
-                        msg.obj = "导入开始, 请稍等片刻...";
-                        toastHandler.sendMessage(msg);
-                        myApp.stu.setCurrentWeek(Integer.parseInt(currentWeek));
-                        myApp.stu.writeCalendar();
-                    }
-                }
-            }).start();
         }
     }
 
