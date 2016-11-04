@@ -31,7 +31,12 @@ public class ExportActivity extends AppCompatActivity {
     public Handler buttonHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            exportButton.setProgress(100);
+            if (msg.what >= 0) {
+                exportButton.setProgress(msg.what);
+            } else {
+                exportButton.setIdleText("重新导出");
+                exportButton.setProgress(0);
+            }
         }
     };
 
@@ -39,6 +44,7 @@ public class ExportActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_export);
+        setTitle("导出");
         stu = ((MyApp)getApplication()).stu;
         currentWeekEditText = (EditText)findViewById(R.id.current_week_edit_text);
         exportButton = (CircularProgressButton)findViewById(R.id.export_button);
@@ -57,10 +63,12 @@ public class ExportActivity extends AppCompatActivity {
                     msg.obj = "请输入本周是第几周!!";
                     toastHandler.sendMessage(msg);
                 } else {
+                    // set progress > 0 & < 100 to display indeterminate progress
+                    // set progress to 100 or -1 to indicate complete or error state
+                    // set progress to 0 to switch back to normal state
+                    exportButton.setProgress(0);
                     exportButton.setIndeterminateProgressMode(true); // turn on indeterminate progress
-                    exportButton.setProgress(50); // set progress > 0 & < 100 to display indeterminate progress
-                    // exportButton.setProgress(100); // set progress to 100 or -1 to indicate complete or error state
-                    // exportButton.setProgress(0); // set progress to 0 to switch back to normal state
+                    exportButton.setProgress(50);
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -68,7 +76,8 @@ public class ExportActivity extends AppCompatActivity {
                             stu.setCurrentWeek(week);
                             stu.deleteCalendar();
                             stu.writeCalendar();
-                            buttonHandler.sendMessage(new Message());
+                            buttonHandler.sendEmptyMessage(100);
+                            buttonHandler.sendEmptyMessageDelayed(-1, 3000);
                         }
                     }).start();
                 }
