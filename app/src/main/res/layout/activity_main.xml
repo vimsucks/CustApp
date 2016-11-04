@@ -1,113 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="tk.vimsucks.custapp.MainActivity">
 
-    <EditText
-        android:id="@+id/username_edit_text"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:hint="学号" />
-
-    <EditText
-        android:id="@+id/password_edit_text"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:hint="密码"
-        android:inputType="textPassword"/>
-
-
-    <Button
-        android:id="@+id/start_button"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:text="登录"
-        android:onClick="onClick" />
+    <include
+        android:id="@+id/tool_bar"
+        layout="@layout/tool_bar"/>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/week_minus_button"
-            android:layout_height="match_parent"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:text="上一周"
-            android:onClick="onClick"/>
-
-        <EditText
-            android:id="@+id/week_edit_text"
-            android:layout_height="match_parent"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:text="1"
-            android:textAlignment="center"
-            android:inputType="numberDecimal"/>
-
-        <Button
-            android:id="@+id/week_plus_button"
-            android:layout_height="match_parent"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:text="下一周"
-            android:onClick="onClick"/>
-
-    </LinearLayout>
+        android:layout_height="match_parent"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin">
 
 
-    <ScrollView
-        android:id="@+id/output_scroll_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:background="@android:color/darker_gray"
-        android:layout_weight="8"
-        android:fadeScrollbars="false">
-
-        <TextView
-            android:id="@+id/output_text_view"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:scrollbars="vertical"
-            android:fadeScrollbars="false"/>
+            android:orientation="horizontal">
 
-    </ScrollView>
+            <Button
+                android:id="@+id/week_minus_button"
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="上一周"
+                android:onClick="onClick"/>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
+            <EditText
+                android:id="@+id/week_edit_text"
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="1"
+                android:textAlignment="center"
+                android:inputType="numberDecimal"/>
 
-        <EditText
-            android:id="@+id/current_edit_text"
-            android:layout_width="0dp"
+            <Button
+                android:id="@+id/week_plus_button"
+                android:layout_height="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="下一周"
+                android:onClick="onClick"/>
+
+        </LinearLayout>
+
+
+        <!--
+    <com.alamkanak.weekview.WeekView
+            android:id="@+id/week_view"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:hint="本周是第几周?"
-            android:inputType="numberDecimal"/>
-
-        <Button
-            android:id="@+id/export_button"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="导入本地日历"
-            android:clickable="false"
-            android:onClick="onClick"/>
+            app:eventTextColor="@android:color/white"
+            app:textSize="12sp"
+            app:hourHeight="60dp"
+            app:headerColumnPadding="8dp"
+            app:headerColumnTextColor="#8f000000"
+            app:headerRowPadding="12dp"
+            app:columnGap="8dp"
+            app:noOfVisibleDays="7"
+            app:headerRowBackgroundColor="#ffefefef"
+            app:dayBackgroundColor="#05000000"
+            app:todayBackgroundColor="#1848adff"
+            app:headerColumnBackground="#ffffffff"/>
+            -->
 
     </LinearLayout>
-
 </LinearLayout>
