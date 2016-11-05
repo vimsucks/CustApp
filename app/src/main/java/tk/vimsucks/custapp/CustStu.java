@@ -18,6 +18,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.jsoup.select.Evaluator;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -150,23 +151,15 @@ public class CustStu {
     }
 
     public boolean getClassAndExpe() {
-        if (getClassTable() && getExpeTable()) {
-            SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
-            SharedPreferences.Editor editor = accountPref.edit();
-            editor.putString("dbUser", username);
-            editor.commit();
-            return true;
-        } else {
-            return false;
-        }
+        Boolean clsAcquired = getClassTable();
+        Boolean expAcquired = getExpeTable();
+        return clsAcquired && expAcquired;
     }
 
     public boolean getClassTable() {
         SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
-        if (!accountPref.getString("dbUser", "").equals(username)) {
-            if (!classTable.classes.isEmpty()) {
-                return true;
-            }
+        SharedPreferences.Editor editor = accountPref.edit();
+        if (!accountPref.getString("clsUser", "").equals(username)) {
             String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
             try {
                 request = requestBuilder
@@ -227,9 +220,11 @@ public class CustStu {
                 }
                 for (CustClass cls : classTable.classes) {
                     for (Integer week : cls.weeks) {
-                        classDatabase.insert(cls.className, cls.classTeacher, cls.classLocation, week, cls.weekday, cls.nth, (cls.isHalf ? 1 : 0));
+                        classDatabase.insert(cls.className, cls.classTeacher, cls.classLocation, week, cls.weekday, cls.nth, (cls.isHalf ? 1 : 0), ClassDatabase.TABLE_CONTENT_TYPE_CLS);
                     }
                 }
+                editor.putString("clsUser", username);
+                editor.commit();
                 Message msg = new Message();
                 msg.obj = "成功获取课表";
                 mainActivity.toastHandler.sendMessage(msg);
@@ -247,10 +242,8 @@ public class CustStu {
 
     public boolean getExpeTable() {
         SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
-        if (!accountPref.getString("dbUser", "").equals(username)) {
-            if (!classTable.expes.isEmpty()) {
-                return true;
-            }
+        SharedPreferences.Editor editor = accountPref.edit();
+        if (!accountPref.getString("expUser", "").equals(username)) {
             String expeUrl = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
             try {
                 request = requestBuilder
@@ -275,8 +268,10 @@ public class CustStu {
                     classTable.expes.add(expe);
                 }
                 for (CustExpe expe : classTable.expes) {
-                    classDatabase.insert(expe.expeName, "", expe.expeLocation, expe.expeWeek, expe.expeWeekday, expe.nth, 0);
+                    classDatabase.insert(expe.expeName, "", expe.expeLocation, expe.expeWeek, expe.expeWeekday, expe.nth, 0, ClassDatabase.TABLE_CONTENT_TYPE_EXP);
                 }
+                editor.putString("expUser", username);
+                editor.commit();
                 Message msg = new Message();
                 msg.obj = "成功获取实验表";
                 mainActivity.toastHandler.sendMessage(msg);
@@ -326,7 +321,8 @@ public class CustStu {
         return newCalendar;
     }
 
-    public void writeCalendar() {
+    public void writeSchedule(Boolean ifWriteCls, Boolean ifWriteExp) {
+        SQLiteDatabase db = classDatabase.getWritableDatabase();
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
         Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
@@ -354,23 +350,42 @@ public class CustStu {
             }
             calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         }
-        SQLiteDatabase db = classDatabase.getWritableDatabase();
-        Cursor cursor = db.query("class_table", null, null, null, null, null, null);
-        if (cursor.moveToFirst()) {
-            do {
-                String name = cursor.getString(cursor.getColumnIndex("class_name"));
-                String teacher = cursor.getString(cursor.getColumnIndex("class_teacher"));
-                String location = cursor.getString(cursor.getColumnIndex("class_location"));
-                Integer week = cursor.getInt(cursor.getColumnIndex("week"));
-                Integer weekday = cursor.getInt(cursor.getColumnIndex("weekday"));
-                Integer nth = cursor.getInt(cursor.getColumnIndex("nth"));
-                Integer is_half = cursor.getInt(cursor.getColumnIndex("is_half"));
-                writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID);
-            } while (cursor.moveToNext());
+        if (ifWriteCls) {
+            Cursor cursor = db.query("cls_table", null, null, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    String name = cursor.getString(cursor.getColumnIndex("class_name"));
+                    String teacher = cursor.getString(cursor.getColumnIndex("class_teacher"));
+                    String location = cursor.getString(cursor.getColumnIndex("class_location"));
+                    Integer week = cursor.getInt(cursor.getColumnIndex("week"));
+                    Integer weekday = cursor.getInt(cursor.getColumnIndex("weekday"));
+                    Integer nth = cursor.getInt(cursor.getColumnIndex("nth"));
+                    Integer is_half = cursor.getInt(cursor.getColumnIndex("is_half"));
+                    writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID, ClassDatabase.TABLE_CONTENT_TYPE_CLS);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+        if (ifWriteExp) {
+            Cursor cursor = db.query("exp_table", null, null, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    String name = cursor.getString(cursor.getColumnIndex("class_name"));
+                    String teacher = cursor.getString(cursor.getColumnIndex("class_teacher"));
+                    String location = cursor.getString(cursor.getColumnIndex("class_location"));
+                    Integer week = cursor.getInt(cursor.getColumnIndex("week"));
+                    Integer weekday = cursor.getInt(cursor.getColumnIndex("weekday"));
+                    Integer nth = cursor.getInt(cursor.getColumnIndex("nth"));
+                    Integer is_half = cursor.getInt(cursor.getColumnIndex("is_half"));
+                    writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID, ClassDatabase.TABLE_CONTENT_TYPE_EXP);
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
         }
     }
 
-    public void deleteCalendar() {
+    public void deleteSchdule(Boolean ifWriteCls, Boolean ifWriteExp) {
+        SQLiteDatabase db = classDatabase.getWritableDatabase();
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
         Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
@@ -384,15 +399,41 @@ public class CustStu {
             calID = userCursor.getString(userCursor.getColumnIndex("_id"));
         }
         Uri eventUri = Uri.parse("content://com.android.calendar/events");
-        Cursor cursor = mainActivity.getContentResolver().query(eventUri, new String[]{"_id"}, "calendar_id = " + calID, null, null); // calendar_id can change in new versions
-        while(cursor.moveToNext()) {
-            System.out.println("event " + cursor.getInt(0) + " deleted");
+        if (ifWriteCls) {
+            Cursor cursor = db.query("cls_id_table", null, null, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    long id = cursor.getLong(cursor.getColumnIndex("id"));
+                    Uri deleteUri = ContentUris.withAppendedId(eventUri, id);
+                    mainActivity.getContentResolver().delete(deleteUri, null, null);
+                } while (cursor.moveToNext());
+            }
+            classDatabase.rebuld_cls_id_table();
+            cursor.close();
+        }
+        if (ifWriteExp) {
+            Cursor cursor = db.query("exp_id_table", null, null, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    long id = cursor.getLong(cursor.getColumnIndex("id"));
+                    Uri deleteUri = ContentUris.withAppendedId(eventUri, id);
+                    mainActivity.getContentResolver().delete(deleteUri, null, null);
+                } while (cursor.moveToNext());
+            }
+            classDatabase.rebuld_exp_id_table();
+            cursor.close();
+        }
+        /*
+        while (cursor.moveToNext()) {
             Uri deleteUri = ContentUris.withAppendedId(eventUri, cursor.getInt(0));
+            System.out.println("event " + cursor.getInt(0) + " deleted");
+            System.out.println(deleteUri.toString());
             mainActivity.getContentResolver().delete(deleteUri, null, null);
         }
+        */
     }
 
-    public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, Integer is_half, String calID) {
+    public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, Integer is_half, String calID, int contentType) {
         Integer clsNum = 0;
         String calendarEventURL = "content://com.android.calendar/events";
         String calendarReminderURL = "content://com.android.calendar/reminders";
@@ -413,7 +454,9 @@ public class CustStu {
         }
         ContentValues event = new ContentValues();
         event.put(CalendarContract.Events.TITLE, name);
-        event.put(CalendarContract.Events.DESCRIPTION, "教师: " + teacher);
+        if (!teacher.isEmpty()) {
+            event.put(CalendarContract.Events.DESCRIPTION, "教师: " + teacher);
+        }
         event.put(CalendarContract.Events.EVENT_LOCATION, location);
         event.put(CalendarContract.Events.CALENDAR_ID, calID);
 
@@ -455,6 +498,7 @@ public class CustStu {
         if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
             Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
             long id = Long.parseLong(newEvent.getLastPathSegment());
+            classDatabase.insertId(id, contentType);
             ContentValues values = new ContentValues();
             values.put("event_id", id);
             values.put("minutes", 10);

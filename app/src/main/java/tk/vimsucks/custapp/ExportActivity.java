@@ -8,19 +8,21 @@ import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.View;
-import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.dd.CircularProgressButton;
 
+import static tk.vimsucks.custapp.MyApp.stu;
+
 public class ExportActivity extends AppCompatActivity {
 
-    private CustStu stu;
     CircularProgressButton exportButton;
     EditText currentWeekEditText;
+    CheckBox ifWriteClsCheckBox;
+    CheckBox ifWriteExpCheckBox;
     public Handler toastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -45,8 +47,9 @@ public class ExportActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_export);
         setTitle("导出");
-        stu = ((MyApp)getApplication()).stu;
         currentWeekEditText = (EditText)findViewById(R.id.current_week_edit_text);
+        ifWriteClsCheckBox = (CheckBox)findViewById(R.id.if_write_cls_checkbox);
+        ifWriteExpCheckBox = (CheckBox)findViewById(R.id.if_write_exp_checkbox);
         exportButton = (CircularProgressButton)findViewById(R.id.export_button);
         exportButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,8 +77,8 @@ public class ExportActivity extends AppCompatActivity {
                         public void run() {
                             Integer week = Integer.parseInt(currentWeek);
                             stu.setCurrentWeek(week);
-                            stu.deleteCalendar();
-                            stu.writeCalendar();
+                            stu.deleteSchdule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
+                            stu.writeSchedule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
                             buttonHandler.sendEmptyMessage(100);
                             buttonHandler.sendEmptyMessageDelayed(-1, 3000);
                         }

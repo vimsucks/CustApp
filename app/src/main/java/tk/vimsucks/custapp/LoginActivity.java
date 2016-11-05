@@ -2,8 +2,6 @@ package tk.vimsucks.custapp;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 
 import android.os.Bundle;
@@ -14,31 +12,8 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
+import static tk.vimsucks.custapp.MyApp.stu;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.RunnableFuture;
-
-import okhttp3.Cookie;
-import okhttp3.CookieJar;
-import okhttp3.FormBody;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 /**
  * A login screen that offers login via email/password.
@@ -46,19 +21,11 @@ import okhttp3.Response;
 public class LoginActivity extends AppCompatActivity {
 
     // UI references.
-    MyApp myApp = (MyApp)getApplication();
     private EditText mStuIDView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
     private Button signInButton;
-
-    public Handler toastHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            Toast.makeText(LoginActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,7 +89,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     Boolean attemptLogin(String username, String password) {
-        Boolean success = myApp.stu.login(username, password);
+        signInButton.setClickable(false);
+        Boolean success = stu.login(username, password);
         if (success) {
             SharedPreferences  accountPref = getSharedPreferences("account", 0);
             SharedPreferences.Editor editor = accountPref.edit();
@@ -132,6 +100,9 @@ public class LoginActivity extends AppCompatActivity {
             editor.commit();
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             startActivityForResult(intent, 1);
+            finish();
+        } else {
+            signInButton.setClickable(true);
         }
         return success;
     }

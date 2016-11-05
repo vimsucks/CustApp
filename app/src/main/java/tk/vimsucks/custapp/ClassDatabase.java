@@ -12,27 +12,29 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 public class ClassDatabase extends SQLiteOpenHelper {
 
+    static final int TABLE_CONTENT_TYPE_CLS = 0;
+    static final int TABLE_CONTENT_TYPE_EXP = 1;
+
+
     public ClassDatabase(Context context) {
-        super(context, "class_table.db", null, 1);
+        super(context, "school_schedule.db", null, 1);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("CREATE TABLE ");
-        sql.append("class_table");
-        sql.append("(");
-        sql.append("id INTEGER PRIMARY KEY AUTOINCREMENT,");
-        sql.append("class_name TEXT,");
-        sql.append("class_teacher TEXT,");
-        sql.append("class_location TEXT,");
-        sql.append("week INTEGER,");
-        sql.append("weekday INTEGER,");
-        sql.append("nth INTEGER,");
-        sql.append("is_half INTEGER");
-        sql.append(");");
-        db.execSQL(sql.toString());
-        db.close();
+        String sql = "(id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "class_name TEXT," +
+                "class_teacher TEXT,"+
+                "class_location TEXT,"+
+                "week INTEGER," +
+                "weekday INTEGER," +
+                "nth INTEGER," +
+                "is_half INTEGER)";
+        db.execSQL("CREATE TABLE " + "cls_table" + sql);
+        db.execSQL("CREATE TABLE " + "exp_table" + sql);
+        db.execSQL("CREATE TABLE cls_id_table(id BINT PRIMARY KEY)");
+        db.execSQL("CREATE TABLE exp_id_table(id BINT PRIMARY KEY)");
+        //db.close();
     }
 
     @Override
@@ -42,12 +44,28 @@ public class ClassDatabase extends SQLiteOpenHelper {
 
     public void removeAll() {
         SQLiteDatabase db = getWritableDatabase();
-        db.delete("class_table", null, null);
-        db.close();
+        db.delete("cls_table", null, null);
+        db.delete("exp_table", null, null);
+        db.delete("cls_id_table", null, null);
+        db.delete("exp_id_table", null, null);
+        //db.close();
     }
 
-    public long insert(String class_name, String class_teacher, String class_location, int week ,int weekday, int nth, int is_half){
+    public void rebuld_cls_id_table() {
         SQLiteDatabase db = getWritableDatabase();
+        db.delete("cls_id_table", null, null);
+        // db.execSQL("CREATE TABLE cls_id_table(id BINT PRIMARY KEY)");
+    }
+
+    public void rebuld_exp_id_table() {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("exp_id_table", null, null);
+        // db.execSQL("CREATE TABLE exp_id_table(id BINT PRIMARY KEY)");
+    }
+
+    public long insert(String class_name, String class_teacher, String class_location, int week ,int weekday, int nth, int is_half, int contentType) {
+        SQLiteDatabase db = getWritableDatabase();
+        long row = -1;
         ContentValues cv = new ContentValues();
         cv.put("class_name", class_name);
         cv.put("class_teacher", class_teacher);
@@ -56,8 +74,25 @@ public class ClassDatabase extends SQLiteOpenHelper {
         cv.put("weekday", weekday);
         cv.put("nth", nth);
         cv.put("is_half", is_half);
-        long row = db.insert("class_table", null, cv);
-        db.close();
+        if (contentType == TABLE_CONTENT_TYPE_CLS) {
+            row = db.insert("cls_table", null, cv);
+        } else if (contentType == TABLE_CONTENT_TYPE_EXP) {
+            row = db.insert("exp_table", null, cv);
+        }
         return row;
     }
+
+    public long insertId(long id, int contentTyep) {
+        SQLiteDatabase db = getWritableDatabase();
+        long row = -1;
+        ContentValues cv = new ContentValues();
+        cv.put("id", id);
+        if (contentTyep == TABLE_CONTENT_TYPE_CLS) {
+            row = db.insert("cls_id_table", null, cv);
+        } else if (contentTyep == TABLE_CONTENT_TYPE_EXP) {
+            row = db.insert("exp_id_table", null, cv);
+        }
+        return row;
+    }
+
 }

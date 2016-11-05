@@ -19,9 +19,10 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import static tk.vimsucks.custapp.MyApp.stu;
+
 public class MainActivity extends AppCompatActivity {
 
-    private MyApp myApp = (MyApp)getApplication();
     EditText currentWeekEditText;
     EditText weekEditText;
     Toolbar toolbar;
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
-        myApp.stu = new CustStu(this);
+        stu = new CustStu(this);
         initViews();
         SharedPreferences  accountPref = getSharedPreferences("account", 0);
         if (accountPref.getBoolean("isLogged", false)) {
@@ -51,10 +52,10 @@ public class MainActivity extends AppCompatActivity {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    myApp.stu.login(username, password);
-                    myApp.stu.setCurrentWeek(0);
-                    myApp.stu.getClassAndExpe();
-                    myApp.stu.classTable.printAll();
+                    stu.login(username, password);
+                    stu.setCurrentWeek(0);
+                    stu.getClassAndExpe();
+                    stu.classTable.printAll();
                 }
             }).start();
         } else {
@@ -89,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
                 weekEditText.setText(String.valueOf(week));
             }
             if (isLogin) {
-                myApp.stu.setCurrentWeek(week);
+                stu.setCurrentWeek(week);
             } else {
                 Message msg = new Message();
                 msg.obj = "Please onClick first!";
@@ -102,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
                 weekEditText.setText(String.valueOf(week));
             }
             if (isLogin) {
-                myApp.stu.setCurrentWeek(week);
+                stu.setCurrentWeek(week);
             } else {
                 Message msg = new Message();
                 msg.obj = "Please onClick first!";
@@ -154,16 +155,23 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences  accountPref = getSharedPreferences("account", 0);
             SharedPreferences.Editor editor = accountPref.edit();
             editor.remove("isLogged");
-            editor.remove("dbUser");
+            editor.remove("clsUser");
+            editor.remove("expUser");
             editor.commit();
             // editor.remove("username");
             // editor.remove("password");
-            myApp.stu.classDatabase.removeAll();
+            stu.classDatabase.removeAll();
             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
             startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stu.classDatabase.close();
     }
 }
 
