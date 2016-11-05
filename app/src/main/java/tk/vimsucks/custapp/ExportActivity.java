@@ -66,23 +66,29 @@ public class ExportActivity extends AppCompatActivity {
                     msg.obj = "请输入本周是第几周!!";
                     toastHandler.sendMessage(msg);
                 } else {
-                    // set progress > 0 & < 100 to display indeterminate progress
-                    // set progress to 100 or -1 to indicate complete or error state
-                    // set progress to 0 to switch back to normal state
-                    exportButton.setProgress(0);
-                    exportButton.setIndeterminateProgressMode(true); // turn on indeterminate progress
-                    exportButton.setProgress(50);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Integer week = Integer.parseInt(currentWeek);
-                            stu.setCurrentWeek(week);
-                            stu.deleteSchdule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
-                            stu.writeSchedule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
-                            buttonHandler.sendEmptyMessage(100);
-                            buttonHandler.sendEmptyMessageDelayed(-1, 3000);
-                        }
-                    }).start();
+                    if (ifWriteClsCheckBox.isChecked() || ifWriteExpCheckBox.isChecked()) {
+                        // set progress > 0 & < 100 to display indeterminate progress
+                        // set progress to 100 or -1 to indicate complete or error state
+                        // set progress to 0 to switch back to normal state
+                        exportButton.setProgress(0);
+                        exportButton.setIndeterminateProgressMode(true); // turn on indeterminate progress
+                        exportButton.setProgress(50);
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Integer week = Integer.parseInt(currentWeek);
+                                stu.setCurrentWeek(week);
+                                stu.deleteSchdule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
+                                stu.writeSchedule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
+                                buttonHandler.sendEmptyMessage(100);
+                                buttonHandler.sendEmptyMessageDelayed(-1, 3000);
+                            }
+                        }).start();
+                    } else {
+                        Message msg = new Message();
+                        msg.obj = "请至少选择一项!!";
+                        toastHandler.sendMessage(msg);
+                    }
                 }
             }
         });
