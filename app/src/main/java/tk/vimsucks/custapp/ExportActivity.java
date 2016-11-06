@@ -38,6 +38,7 @@ public class ExportActivity extends AppCompatActivity {
             } else {
                 exportButton.setIdleText("重新导出");
                 exportButton.setProgress(0);
+                exportButton.setClickable(true);
             }
         }
     };
@@ -73,6 +74,7 @@ public class ExportActivity extends AppCompatActivity {
                         exportButton.setProgress(0);
                         exportButton.setIndeterminateProgressMode(true); // turn on indeterminate progress
                         exportButton.setProgress(50);
+                        exportButton.setClickable(false);
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
