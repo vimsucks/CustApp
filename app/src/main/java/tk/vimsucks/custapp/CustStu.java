@@ -408,7 +408,7 @@ public class CustStu {
                     mainActivity.getContentResolver().delete(deleteUri, null, null);
                 } while (cursor.moveToNext());
             }
-            classDatabase.rebuld_cls_id_table();
+            classDatabase.rebuild_cls_id_table();
             cursor.close();
         }
         if (ifWriteExp) {
@@ -420,7 +420,7 @@ public class CustStu {
                     mainActivity.getContentResolver().delete(deleteUri, null, null);
                 } while (cursor.moveToNext());
             }
-            classDatabase.rebuld_exp_id_table();
+            classDatabase.rebuild_exp_id_table();
             cursor.close();
         }
         /*
@@ -431,6 +431,33 @@ public class CustStu {
             mainActivity.getContentResolver().delete(deleteUri, null, null);
         }
         */
+    }
+
+    public void deleteSchdule() {
+        SQLiteDatabase db = classDatabase.getWritableDatabase();
+        String calendarURL = "content://com.android.calendar/calendars";
+        String calID = "";
+        Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+        userCursor.moveToFirst();
+        while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+            userCursor.moveToNext();
+        }
+        if (userCursor.isAfterLast()) {
+            return;
+        } else {
+            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
+        }
+
+        Uri eventUri = Uri.parse("content://com.android.calendar/events");  // or "content://com.android.calendar/events"
+
+        Cursor cursor = mainActivity.getContentResolver().query(eventUri, new String[]{"_id"}, "calendar_id = " + calID, null, null); // calendar_id can change in new versions
+
+        while(cursor.moveToNext()) {
+            Uri deleteUri = ContentUris.withAppendedId(eventUri, cursor.getInt(0));
+            mainActivity.getContentResolver().delete(deleteUri, null, null);
+        }
+        classDatabase.rebuild_cls_id_table();
+        classDatabase.rebuild_exp_id_table();
     }
 
     public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, Integer is_half, String calID, int contentType) {

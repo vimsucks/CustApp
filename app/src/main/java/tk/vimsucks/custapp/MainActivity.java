@@ -19,6 +19,8 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.roger.catloadinglibrary.CatLoadingView;
+
 import static tk.vimsucks.custapp.MyApp.stu;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     EditText currentWeekEditText;
     EditText weekEditText;
     Toolbar toolbar;
+    CatLoadingView mView;
     //WeekView mWeekView;
     boolean isLogin = false;
     boolean isClassTableAcquired = false;
@@ -35,6 +38,17 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void handleMessage(Message msg) {
             Toast.makeText(MainActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    public Handler mViewHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what > 0) {
+                mView.show(getSupportFragmentManager(), "");
+            } else {
+                mView.dismiss();
+            }
         }
     };
 
@@ -148,6 +162,19 @@ public class MainActivity extends AppCompatActivity {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        }else if (id == R.id.action_delete_calendar) {
+            mView = new CatLoadingView();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    mViewHandler.sendEmptyMessage(1);
+                    stu.deleteSchdule();
+                    mViewHandler.sendEmptyMessage(0);
+                    Message msg = new Message();
+                    msg.obj = "删除成功";
+                    toastHandler.sendMessage(msg);
+                }
+            }).start();
         } else if (id == R.id.action_export) {
             Intent intent = new Intent(MainActivity.this, ExportActivity.class);
             startActivity(intent);

@@ -51,13 +51,13 @@ public class ClassDatabase extends SQLiteOpenHelper {
         //db.close();
     }
 
-    public void rebuld_cls_id_table() {
+    public void rebuild_cls_id_table() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("cls_id_table", null, null);
         // db.execSQL("CREATE TABLE cls_id_table(id BINT PRIMARY KEY)");
     }
 
-    public void rebuld_exp_id_table() {
+    public void rebuild_exp_id_table() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("exp_id_table", null, null);
         // db.execSQL("CREATE TABLE exp_id_table(id BINT PRIMARY KEY)");
