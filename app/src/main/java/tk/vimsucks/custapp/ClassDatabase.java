@@ -2,21 +2,16 @@ package tk.vimsucks.custapp;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-/**
- * Created by vimsucks on 11/4/16.
- */
-
-public class ClassDatabase extends SQLiteOpenHelper {
+class ClassDatabase extends SQLiteOpenHelper {
 
     static final int TABLE_CONTENT_TYPE_CLS = 0;
     static final int TABLE_CONTENT_TYPE_EXP = 1;
 
 
-    public ClassDatabase(Context context) {
+    ClassDatabase(Context context) {
         super(context, "school_schedule.db", null, 1);
     }
 
@@ -42,7 +37,7 @@ public class ClassDatabase extends SQLiteOpenHelper {
 
     }
 
-    public void removeAll() {
+    void removeAll() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("cls_table", null, null);
         db.delete("exp_table", null, null);
@@ -51,19 +46,19 @@ public class ClassDatabase extends SQLiteOpenHelper {
         //db.close();
     }
 
-    public void rebuild_cls_id_table() {
+    void rebuild_cls_id_table() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("cls_id_table", null, null);
         // db.execSQL("CREATE TABLE cls_id_table(id BINT PRIMARY KEY)");
     }
 
-    public void rebuild_exp_id_table() {
+    void rebuild_exp_id_table() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("exp_id_table", null, null);
         // db.execSQL("CREATE TABLE exp_id_table(id BINT PRIMARY KEY)");
     }
 
-    public long insert(String class_name, String class_teacher, String class_location, int week ,int weekday, int nth, int is_half, int contentType) {
+    long insert(String class_name, String class_teacher, String class_location, int week ,int weekday, int nth, int is_half, int contentType) {
         SQLiteDatabase db = getWritableDatabase();
         long row = -1;
         ContentValues cv = new ContentValues();
@@ -82,7 +77,7 @@ public class ClassDatabase extends SQLiteOpenHelper {
         return row;
     }
 
-    public long insertId(long id, int contentTyep) {
+    long insertId(long id, int contentTyep) {
         SQLiteDatabase db = getWritableDatabase();
         long row = -1;
         ContentValues cv = new ContentValues();

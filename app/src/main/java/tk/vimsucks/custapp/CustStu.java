@@ -7,30 +7,22 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.net.Uri;
-import android.os.Handler;
 import android.os.Message;
 import android.provider.CalendarContract;
 import android.text.format.Time;
-import android.widget.Toast;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.jsoup.select.Evaluator;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
@@ -188,7 +180,7 @@ public class CustStu {
                                     }
                                 }
                                 tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                                classTable.classes.add(new CustClass(tdsAfter.get(0).text(),
+                                classTable.clses.add(new CustClass(tdsAfter.get(0).text(),
                                         tdsAfter.get(1).text(),
                                         tdsAfter.get(2).text(),
                                         tdsAfter.get(3).text(),
@@ -209,7 +201,7 @@ public class CustStu {
                                 }
                             }
                             tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                            classTable.classes.add(new CustClass(tdsAfter.get(0).text(),
+                            classTable.clses.add(new CustClass(tdsAfter.get(0).text(),
                                     tdsAfter.get(1).text(),
                                     tdsAfter.get(2).text(),
                                     tdsAfter.get(3).text(),
@@ -218,7 +210,7 @@ public class CustStu {
                         }
                     }
                 }
-                for (CustClass cls : classTable.classes) {
+                for (CustClass cls : classTable.clses) {
                     for (Integer week : cls.weeks) {
                         classDatabase.insert(cls.className, cls.classTeacher, cls.classLocation, week, cls.weekday, cls.nth, (cls.isHalf ? 1 : 0), ClassDatabase.TABLE_CONTENT_TYPE_CLS);
                     }

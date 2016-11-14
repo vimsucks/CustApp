@@ -31,9 +31,8 @@ public class MainActivity extends AppCompatActivity {
     CatLoadingView mView;
     //WeekView mWeekView;
     boolean isLogin = false;
-    boolean isClassTableAcquired = false;
-    boolean isExpeTableAcquired = false;
-    SharedPreferences  accountPref;
+    //boolean isClassTableAcquired = false;
+    //boolean isExpeTableAcquired = false;
     public Handler toastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -134,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
             {
-                //onClick(exportButton);
+                System.out.println("Permission Granted");
             } else
             {
                 // Permission Denied
@@ -184,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
             editor.remove("isLogged");
             editor.remove("clsUser");
             editor.remove("expUser");
-            editor.commit();
+            editor.apply();
             // editor.remove("username");
             // editor.remove("password");
             stu.classDatabase.removeAll();
