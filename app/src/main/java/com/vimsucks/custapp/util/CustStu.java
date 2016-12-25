@@ -1,4 +1,4 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.util;
 
 import android.Manifest;
 import android.content.ContentUris;
@@ -7,9 +7,16 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Message;
 import android.provider.CalendarContract;
+import android.support.v4.app.ActivityCompat;
 import android.text.format.Time;
+import android.util.Log;
+
+import com.vimsucks.custapp.activities.ExportActivity;
+import com.vimsucks.custapp.dbutil.ClassDatabase;
+import com.vimsucks.custapp.activities.MainActivity;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -37,15 +44,17 @@ public class CustStu {
 
     public String username;
     private String password;
-    ClassTable classTable = new ClassTable();
-    ClassDatabase classDatabase;
+    private final ClassTable classTable = new ClassTable();
+    public final ClassDatabase classDatabase;
     private Integer currentWeek;
-    static private MainActivity mainActivity;
+    private static MainActivity mainActivity;
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private final Integer[] STARTHOURS = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private final Integer[] ENDHOURS = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
     private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 45, 35};
     private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 30, 20};
+
+    private static final String TAG = "CustStu";
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -86,7 +95,7 @@ public class CustStu {
     public boolean login(String usrName, String passwd) {
         username = usrName;
         password = passwd;
-        System.out.print("!!== try login " + username + " " + password + " ==!!");
+        Log.i(TAG, "login: try login username " + username + " password " + password);
         try {
             String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
@@ -123,6 +132,7 @@ public class CustStu {
             doc = Jsoup.parse(html);
             Element nameEle = doc.getElementById("StudentNameValueLabel");
             if (nameEle == null) {
+                Log.i(TAG, "login : login failed, maybe username & password incorrect");
                 Message msg = new Message();
                 msg.obj = "登录失败，可能是密码错误";
                 mainActivity.toastHandler.sendMessage(msg);
@@ -135,6 +145,7 @@ public class CustStu {
                 return true;
             }
         } catch (IOException e) {
+            Log.i(TAG, "login : login failed due to network error");
             Message msg = new Message();
             msg.obj = "登录失败,服务器炸啦";
             mainActivity.toastHandler.sendMessage(msg);
@@ -377,6 +388,12 @@ public class CustStu {
     }
 
     public void deleteSchdule(Boolean ifWriteCls, Boolean ifWriteExp) {
+        if (mainActivity.getPackageManager().PERMISSION_DENIED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
+            if (Build.VERSION.SDK_INT >= 23) {
+                ActivityCompat.requestPermissions(mainActivity, new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
+            }
+            return;
+        }
         SQLiteDatabase db = classDatabase.getWritableDatabase();
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
@@ -523,6 +540,12 @@ public class CustStu {
             values.put("minutes", 10);
             mainActivity.getContentResolver().insert(Uri.parse(calendarReminderURL), values);
         }
+    }
+
+
+    /* *** *** Debug Methods *** *** */
+    public void logClassTable() {
+        classTable.logAll();
     }
 
 }

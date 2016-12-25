@@ -5,7 +5,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="tk.vimsucks.custapp.MainActivity">
+    tools:context="com.vimsucks.custapp.com.vimsucks.custapp.MainActivity">
 
     <include
         android:id="@+id/tool_bar"

@@ -1,4 +1,4 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.activities;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -14,8 +14,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.dd.CircularProgressButton;
-
-import static tk.vimsucks.custapp.MyApp.stu;
+import com.vimsucks.custapp.MyApp;
+import com.vimsucks.custapp.R;
 
 public class ExportActivity extends AppCompatActivity {
 
@@ -79,9 +79,9 @@ public class ExportActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 Integer week = Integer.parseInt(currentWeek);
-                                stu.setCurrentWeek(week);
-                                stu.deleteSchdule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
-                                stu.writeSchedule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
+                                MyApp.stu.setCurrentWeek(week);
+                                MyApp.stu.deleteSchdule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
+                                MyApp.stu.writeSchedule(ifWriteClsCheckBox.isChecked(), ifWriteExpCheckBox.isChecked());
                                 buttonHandler.sendEmptyMessage(100);
                                 buttonHandler.sendEmptyMessageDelayed(-1, 3000);
                             }

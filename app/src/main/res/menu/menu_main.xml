@@ -3,12 +3,17 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".MainActivity">
+    tools:context="com.vimsucks.custapp.activities.MainActivity">
 
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:title="@string/action_settings"
+        app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_open_jwgl"
+        android:orderInCategory="100"
+        android:title="@string/action_open_jwgl"
         app:showAsAction="never"/>
     <item
         android:id="@+id/action_delete_calendar"
@@ -19,6 +24,11 @@
         android:id="@+id/action_export"
         android:orderInCategory="300"
         android:title="@string/action_export"
+        app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_logout"
+        android:orderInCategory="300"
+        android:title="@string/action_logout"
         app:showAsAction="never"/>
     <item
         android:id="@+id/action_exit"

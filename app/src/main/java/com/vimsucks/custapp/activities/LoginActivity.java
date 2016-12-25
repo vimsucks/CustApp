@@ -1,9 +1,7 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.activities;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 
 import android.os.Bundle;
@@ -14,9 +12,9 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import static tk.vimsucks.custapp.MyApp.stu;
+import com.vimsucks.custapp.MyApp;
+import com.vimsucks.custapp.R;
 
 
 /**
@@ -94,7 +92,7 @@ public class LoginActivity extends AppCompatActivity {
 
     Boolean attemptLogin(String username, String password) {
         signInButton.setClickable(false);
-        Boolean success = stu.login(username, password);
+        Boolean success = MyApp.stu.login(username, password);
         if (success) {
             SharedPreferences  accountPref = getSharedPreferences("account", 0);
             SharedPreferences.Editor editor = accountPref.edit();
@@ -102,8 +100,7 @@ public class LoginActivity extends AppCompatActivity {
             editor.putString("username", username);
             editor.putString("password", password);
             editor.commit();
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-            startActivityForResult(intent, 1);
+            startActivityForResult(new Intent(LoginActivity.this, MainActivity.class), 1);
             finish();
         } else {
             signInButton.setClickable(true);

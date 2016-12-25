@@ -8,7 +8,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="tk.vimsucks.custapp.LoginActivity">
+    tools:context="com.vimsucks.custapp.com.vimsucks.custapp.LoginActivity">
 
     <!-- Login progress -->
     <ProgressBar
@@ -57,6 +57,7 @@
                     android:imeActionLabel="@string/action_sign_in_short"
                     android:imeOptions="actionUnspecified"
                     android:inputType="textPassword"
+                    style="text"
                     android:maxLines="1"/>
 
             </android.support.design.widget.TextInputLayout>

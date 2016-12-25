@@ -1,4 +1,4 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp;
 
 import org.junit.Test;
 

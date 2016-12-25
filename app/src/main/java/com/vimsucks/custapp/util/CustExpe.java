@@ -1,4 +1,4 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.util;
 
 import java.util.HashMap;
 import java.util.Map;

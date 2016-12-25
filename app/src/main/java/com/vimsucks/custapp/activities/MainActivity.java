@@ -1,27 +1,27 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.activities;
 
-import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.roger.catloadinglibrary.CatLoadingView;
+import com.vimsucks.custapp.util.CustStu;
+import com.vimsucks.custapp.R;
 
-import static tk.vimsucks.custapp.MyApp.stu;
+import static com.vimsucks.custapp.MyApp.stu;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, msg.obj.toString(), Toast.LENGTH_SHORT).show();
         }
     };
+    private static final String TAG = "MainActivity";
 
     public Handler mViewHandler = new Handler() {
         @Override
@@ -68,12 +69,13 @@ public class MainActivity extends AppCompatActivity {
                     stu.login(username, password);
                     stu.setCurrentWeek(0);
                     stu.getClassAndExpe();
-                    stu.classTable.printAll();
+                    stu.logClassTable();
                 }
             }).start();
         } else {
             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
             startActivity(intent);
+            finish();
         }
     }
 
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
             {
-                System.out.println("Permission Granted");
+                Log.i(TAG, "onRequestPermissionsResult: Granted");
             } else
             {
                 // Permission Denied
@@ -156,39 +158,50 @@ public class MainActivity extends AppCompatActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }else if (id == R.id.action_delete_calendar) {
-            mView = new CatLoadingView();
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    mViewHandler.sendEmptyMessage(1);
-                    stu.deleteSchdule();
-                    mViewHandler.sendEmptyMessage(0);
-                    Message msg = new Message();
-                    msg.obj = "删除成功";
-                    toastHandler.sendMessage(msg);
-                }
-            }).start();
-        } else if (id == R.id.action_export) {
-            Intent intent = new Intent(MainActivity.this, ExportActivity.class);
-            startActivity(intent);
-        } else if (id == R.id.action_exit) {
-            SharedPreferences  accountPref = getSharedPreferences("account", 0);
-            SharedPreferences.Editor editor = accountPref.edit();
-            editor.remove("isLogged");
-            editor.remove("clsUser");
-            editor.remove("expUser");
-            editor.apply();
-            // editor.remove("username");
-            // editor.remove("password");
-            stu.classDatabase.removeAll();
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-            startActivity(intent);
+        Intent intent;
+
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                return true;
+            case R.id.action_open_jwgl:
+                intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse("http://jwgl.cust.edu.cn/teachwebsl/login.aspx"));
+                startActivity(intent);
+                break;
+            case R.id.action_delete_calendar:
+                mView = new CatLoadingView();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mViewHandler.sendEmptyMessage(1);
+                        stu.deleteSchdule();
+                        mViewHandler.sendEmptyMessage(0);
+                        Message msg = new Message();
+                        msg.obj = "删除成功";
+                        toastHandler.sendMessage(msg);
+                    }
+                }).start();
+                break;
+            case R.id.action_export:
+                intent = new Intent(MainActivity.this, ExportActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.action_logout:
+                SharedPreferences  accountPref = getSharedPreferences("account", 0);
+                SharedPreferences.Editor editor = accountPref.edit();
+                editor.remove("isLogged");
+                editor.remove("clsUser");
+                editor.remove("expUser");
+                editor.apply();
+                // editor.remove("username");
+                // editor.remove("password");
+                stu.classDatabase.removeAll();
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                finish();
+                break;
+            case R.id.action_exit:
+                finish();
         }
 
         return super.onOptionsItemSelected(item);
@@ -199,5 +212,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         stu.classDatabase.close();
     }
+
 }
 

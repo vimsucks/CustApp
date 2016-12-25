@@ -1,7 +1,8 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp;
 
 import android.app.Application;
-import android.content.SharedPreferences;
+
+import com.vimsucks.custapp.util.CustStu;
 
 /**
  * Created by vimsucks on 11/4/16.

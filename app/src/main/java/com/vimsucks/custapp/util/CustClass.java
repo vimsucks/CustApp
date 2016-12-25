@@ -1,4 +1,4 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.util;
 
 import java.util.Set;
 import java.util.TreeSet;

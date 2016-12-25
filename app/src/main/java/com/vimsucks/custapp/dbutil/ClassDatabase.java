@@ -1,17 +1,17 @@
-package tk.vimsucks.custapp;
+package com.vimsucks.custapp.dbutil;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-class ClassDatabase extends SQLiteOpenHelper {
+public class ClassDatabase extends SQLiteOpenHelper {
 
-    static final int TABLE_CONTENT_TYPE_CLS = 0;
-    static final int TABLE_CONTENT_TYPE_EXP = 1;
+    public static final int TABLE_CONTENT_TYPE_CLS = 0;
+    public static final int TABLE_CONTENT_TYPE_EXP = 1;
 
 
-    ClassDatabase(Context context) {
+    public ClassDatabase(Context context) {
         super(context, "school_schedule.db", null, 1);
     }
 
@@ -37,7 +37,7 @@ class ClassDatabase extends SQLiteOpenHelper {
 
     }
 
-    void removeAll() {
+    public void removeAll() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("cls_table", null, null);
         db.delete("exp_table", null, null);
@@ -46,19 +46,19 @@ class ClassDatabase extends SQLiteOpenHelper {
         //db.close();
     }
 
-    void rebuild_cls_id_table() {
+    public void rebuild_cls_id_table() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("cls_id_table", null, null);
         // db.execSQL("CREATE TABLE cls_id_table(id BINT PRIMARY KEY)");
     }
 
-    void rebuild_exp_id_table() {
+    public void rebuild_exp_id_table() {
         SQLiteDatabase db = getWritableDatabase();
         db.delete("exp_id_table", null, null);
         // db.execSQL("CREATE TABLE exp_id_table(id BINT PRIMARY KEY)");
     }
 
-    long insert(String class_name, String class_teacher, String class_location, int week ,int weekday, int nth, int is_half, int contentType) {
+    public long insert(String class_name, String class_teacher, String class_location, int week ,int weekday, int nth, int is_half, int contentType) {
         SQLiteDatabase db = getWritableDatabase();
         long row = -1;
         ContentValues cv = new ContentValues();
@@ -77,7 +77,7 @@ class ClassDatabase extends SQLiteOpenHelper {
         return row;
     }
 
-    long insertId(long id, int contentTyep) {
+    public long insertId(long id, int contentTyep) {
         SQLiteDatabase db = getWritableDatabase();
         long row = -1;
         ContentValues cv = new ContentValues();
