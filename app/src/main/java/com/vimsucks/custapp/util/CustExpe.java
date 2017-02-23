@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class CustExpe {
 
-    private static Map<String, Integer> chineseMap = new HashMap<String, Integer>();
+    public static Map<String, Integer> chineseMap = new HashMap<String, Integer>();
 
     public String expeName;
     public String expeLocation;

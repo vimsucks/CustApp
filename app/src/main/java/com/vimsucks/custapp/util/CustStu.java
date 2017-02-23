@@ -14,8 +14,6 @@ import android.support.v4.app.ActivityCompat;
 import android.text.format.Time;
 import android.util.Log;
 
-import com.vimsucks.custapp.activities.ExportActivity;
-import com.vimsucks.custapp.dbutil.ClassDatabase;
 import com.vimsucks.custapp.activities.MainActivity;
 
 import org.jsoup.Jsoup;
@@ -30,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
@@ -42,10 +41,10 @@ import okhttp3.Response;
 
 public class CustStu {
 
+
     public String username;
     private String password;
     private final ClassTable classTable = new ClassTable();
-    public final ClassDatabase classDatabase;
     private Integer currentWeek;
     private static MainActivity mainActivity;
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
@@ -55,6 +54,15 @@ public class CustStu {
     private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 30, 20};
 
     private static final String TAG = "CustStu";
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -87,11 +95,18 @@ public class CustStu {
     private Request request;
     private Response response;
 
+
     public CustStu(MainActivity act) {
         mainActivity = act;
-        classDatabase = new ClassDatabase(mainActivity);
     }
 
+
+    /**
+     * Login method
+     * @param usrName username
+     * @param passwd password
+     * @return true if login successfully
+     */
     public boolean login(String usrName, String passwd) {
         username = usrName;
         password = passwd;
@@ -134,24 +149,23 @@ public class CustStu {
             if (nameEle == null) {
                 Log.i(TAG, "login : login failed, maybe username & password incorrect");
                 Message msg = new Message();
-                msg.obj = "登录失败，可能是密码错误";
-                mainActivity.toastHandler.sendMessage(msg);
+                msg.what = 0;
+                mainActivity.progressHandler.sendMessage(msg);
+                mainActivity.changeAlert("登录失败", "登录失败，用户名密码错误");
                 return false;
             } else {
-                String stuName = nameEle.text();
-                Message msg = new Message();
-                msg.obj = stuName + "登录成功";
-                mainActivity.toastHandler.sendMessage(msg);
                 return true;
             }
         } catch (IOException e) {
             Log.i(TAG, "login : login failed due to network error");
             Message msg = new Message();
-            msg.obj = "登录失败,服务器炸啦";
-            mainActivity.toastHandler.sendMessage(msg);
+            msg.what = 0;
+            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.changeAlert("登录失败", "登录失败,服务器炸啦");
             return false;
         }
     }
+
 
     public boolean getClassAndExpe() {
         Boolean clsAcquired = getClassTable();
@@ -159,48 +173,29 @@ public class CustStu {
         return clsAcquired && expAcquired;
     }
 
+
+    /**
+     * Fetching class table
+     * @return true If successfully getting class table
+     */
     public boolean getClassTable() {
-        SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
-        SharedPreferences.Editor editor = accountPref.edit();
-        if (!accountPref.getString("clsUser", "").equals(username)) {
-            String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
-            try {
-                request = requestBuilder
-                        .url(classUrl)
-                        .get()
-                        .build();
-                response = httpClient.newCall(request).execute();
-                String html = response.body().string();
-                Document doc = Jsoup.parse(html);
-                Elements contentCells = doc.getElementsByClass("ContentCell");
-                Integer i = 0;
-                for (Element contentCell : contentCells) {
-                    ++i;
-                    Elements tables = contentCell.getElementsByTag("table");
-                    if (tables.size() > 1) {
-                        tables.remove(0);
-                        for (Element table : tables) {
-                            Elements tds = table.getElementsByTag("td");
-                            if (tds.first().text().trim().length() <= 1) {
-                                continue;
-                            } else {
-                                Elements tdsAfter = new Elements();
-                                for (Element td : tds) {
-                                    if (td.text().trim().length() > 1) {
-                                        tdsAfter.add(td);
-                                    }
-                                }
-                                tdsAfter = new Elements(tdsAfter.subList(0, 4));
-                                classTable.clses.add(new CustClass(tdsAfter.get(0).text(),
-                                        tdsAfter.get(1).text(),
-                                        tdsAfter.get(2).text(),
-                                        tdsAfter.get(3).text(),
-                                        i % 7 == 0 ? 7 : i % 7,
-                                        i % 7 == 0 ? i / 7 : i / 7 + 1));
-                            }
-                        }
-                    } else {
-                        Element table = tables.first();
+        String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
+        try {
+            request = requestBuilder
+                    .url(classUrl)
+                    .get()
+                    .build();
+            response = httpClient.newCall(request).execute();
+            String html = response.body().string();
+            Document doc = Jsoup.parse(html);
+            Elements contentCells = doc.getElementsByClass("ContentCell");
+            Integer i = 0;
+            for (Element contentCell : contentCells) {
+                ++i;
+                Elements tables = contentCell.getElementsByTag("table");
+                if (tables.size() > 1) {
+                    tables.remove(0);
+                    for (Element table : tables) {
                         Elements tds = table.getElementsByTag("td");
                         if (tds.first().text().trim().length() <= 1) {
                             continue;
@@ -220,33 +215,40 @@ public class CustStu {
                                     i % 7 == 0 ? i / 7 : i / 7 + 1));
                         }
                     }
-                }
-                for (CustClass cls : classTable.clses) {
-                    for (Integer week : cls.weeks) {
-                        classDatabase.insert(cls.className, cls.classTeacher, cls.classLocation, week, cls.weekday, cls.nth, (cls.isHalf ? 1 : 0), ClassDatabase.TABLE_CONTENT_TYPE_CLS);
+                } else {
+                    Element table = tables.first();
+                    Elements tds = table.getElementsByTag("td");
+                    if (tds.first().text().trim().length() <= 1) {
+                        continue;
+                    } else {
+                        Elements tdsAfter = new Elements();
+                        for (Element td : tds) {
+                            if (td.text().trim().length() > 1) {
+                                tdsAfter.add(td);
+                            }
+                        }
+                        tdsAfter = new Elements(tdsAfter.subList(0, 4));
+                        classTable.clses.add(new CustClass(tdsAfter.get(0).text(),
+                                tdsAfter.get(1).text(),
+                                tdsAfter.get(2).text(),
+                                tdsAfter.get(3).text(),
+                                i % 7 == 0 ? 7 : i % 7,
+                                i % 7 == 0 ? i / 7 : i / 7 + 1));
                     }
                 }
-                editor.putString("clsUser", username);
-                editor.commit();
-                Message msg = new Message();
-                msg.obj = "成功获取课表";
-                mainActivity.toastHandler.sendMessage(msg);
-                return true;
-            } catch (IOException e) {
-                Message msg = new Message();
-                msg.obj = "获取课表失败,服务器炸啦";
-                mainActivity.toastHandler.sendMessage(msg);
-                return false;
             }
-        } else {
             return true;
+        } catch (IOException e) {
+            Message msg = new Message();
+            msg.what = 0;
+            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.changeAlert("获取课表失败", "获取课表失败,服务器炸啦");
+            return false;
         }
     }
 
+
     public boolean getExpeTable() {
-        SharedPreferences  accountPref = mainActivity.getSharedPreferences("account", 0);
-        SharedPreferences.Editor editor = accountPref.edit();
-        if (!accountPref.getString("expUser", "").equals(username)) {
             String expeUrl = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
             try {
                 request = requestBuilder
@@ -270,29 +272,65 @@ public class CustStu {
                     );
                     classTable.expes.add(expe);
                 }
-                for (CustExpe expe : classTable.expes) {
-                    classDatabase.insert(expe.expeName, "", expe.expeLocation, expe.expeWeek, expe.expeWeekday, expe.nth, 0, ClassDatabase.TABLE_CONTENT_TYPE_EXP);
-                }
-                editor.putString("expUser", username);
-                editor.commit();
-                Message msg = new Message();
-                msg.obj = "成功获取实验表";
-                mainActivity.toastHandler.sendMessage(msg);
                 return true;
             } catch (IOException e) {
                 Message msg = new Message();
-                msg.obj = "获取课表失败,服务器炸啦";
-                mainActivity.toastHandler.sendMessage(msg);
+                msg.what = 0;
+                mainActivity.progressHandler.sendMessage(msg);
+                mainActivity.changeAlert("获取实验课失败", "获取课表失败,服务器炸啦");
                 return false;
             }
-        } else {
+    }
+
+
+    public boolean getCurrentWeek() {
+        String schoolCalendarUrl = "http://jwgl.cust.edu.cn/teachweb/SchoolCalendar/Calendar.aspx";
+        try {
+            request = requestBuilder
+                    .url(schoolCalendarUrl)
+                    .get()
+                    .build();
+            response = httpClient.newCall(request).execute();
+            String html = response.body().string();
+            Document doc = Jsoup.parse(html);
+            Elements trs = doc.getElementsByTag("tr");
+            String temp = trs.get(4).getElementsByTag("td").get(1).text();
+            int beginYear = Integer.parseInt(temp.split("年")[0]);
+            String beginChineseMonth = temp.split("年")[1];
+            beginChineseMonth = beginChineseMonth.substring(0, beginChineseMonth.length()-1);
+            int beginMonth = 0;
+            for (int i = 0; i < beginChineseMonth.length(); ++i) {
+                beginMonth += CustExpe.chineseMap.get(beginChineseMonth.substring(i, i+1));
+            }
+            int beginDay = Integer.parseInt(trs.get(4).getElementsByTag("td").get(2).text());
+            Log.i(TAG, "Successfully fetch term begin year : " + beginYear);
+            Log.i(TAG, "Successfully fetch term begin month : " + beginMonth);
+            Log.i(TAG, "Successfully fetch term begin day : " + beginDay);
+            Calendar fromCalendar = Calendar.getInstance();
+            Calendar toCalendar = Calendar.getInstance();
+            fromCalendar.set(beginYear, beginMonth - 1, beginDay);
+            long intervalDays = TimeUnit.MILLISECONDS.toDays(
+                    toCalendar.getTimeInMillis() - fromCalendar.getTimeInMillis());
+            System.out.println(intervalDays);
+            if (intervalDays == 0) {
+                currentWeek = 1;
+            } else if (intervalDays > 0){
+                currentWeek = (int)intervalDays / 7 + 1;
+            } else {
+                currentWeek = (int)intervalDays / 7;
+            }
+            Log.i(TAG, "Successfully fetch current week: " + currentWeek);
             return true;
+        } catch (IOException e) {
+            return false;
         }
     }
+
 
     public void setCurrentWeek(Integer week) {
         currentWeek = week;
     }
+
 
     public static Uri createCalendar() {
         String accountName = "ClassTable";
@@ -324,126 +362,84 @@ public class CustStu {
         return newCalendar;
     }
 
-    public void writeSchedule(Boolean ifWriteCls, Boolean ifWriteExp) {
-        SQLiteDatabase db = classDatabase.getWritableDatabase();
-        String calendarURL = "content://com.android.calendar/calendars";
-        String calID = "";
-        Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
-        if (userCursor.getCount() < 1) {
-            createCalendar();
-            userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
-            userCursor.moveToFirst();
-            while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
-                userCursor.moveToNext();
-            }
-            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
-        } else {
-            userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
-            userCursor.moveToFirst();
-            while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
-                userCursor.moveToNext();
-            }
-            if (userCursor.isAfterLast()) {
+
+    public void writeSchedule(boolean ifWriteCls, boolean ifWriteExpe) {
+        try {
+            String calendarURL = "content://com.android.calendar/calendars";
+            Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+            String calID;
+            if (userCursor.getCount() < 1) {
                 createCalendar();
+                userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
                 userCursor.moveToFirst();
-                userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null); userCursor.moveToFirst();
+                userCursor.moveToFirst();
                 while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
                     userCursor.moveToNext();
                 }
+                calID = userCursor.getString(userCursor.getColumnIndex("_id"));
+            } else {
+                userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+                userCursor.moveToFirst();
+                while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+                    userCursor.moveToNext();
+                }
+                if (userCursor.isAfterLast()) {
+                    createCalendar();
+                    userCursor.moveToFirst();
+                    userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
+                    userCursor.moveToFirst();
+                    while (!"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
+                        userCursor.moveToNext();
+                    }
+                }
+                calID = userCursor.getString(userCursor.getColumnIndex("_id"));
             }
-            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
-        }
-        if (ifWriteCls) {
-            Cursor cursor = db.query("cls_table", null, null, null, null, null, null);
-            if (cursor.moveToFirst()) {
-                do {
-                    String name = cursor.getString(cursor.getColumnIndex("class_name"));
-                    String teacher = cursor.getString(cursor.getColumnIndex("class_teacher"));
-                    String location = cursor.getString(cursor.getColumnIndex("class_location"));
-                    Integer week = cursor.getInt(cursor.getColumnIndex("week"));
-                    Integer weekday = cursor.getInt(cursor.getColumnIndex("weekday"));
-                    Integer nth = cursor.getInt(cursor.getColumnIndex("nth"));
-                    Integer is_half = cursor.getInt(cursor.getColumnIndex("is_half"));
-                    writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID, ClassDatabase.TABLE_CONTENT_TYPE_CLS);
-                } while (cursor.moveToNext());
+
+            if (ifWriteCls) {
+                Integer clsNum = classTable.clses.size();
+                int i = 1;
+                for (CustClass cls : classTable.clses) {
+                    for (int week : cls.weeks) {
+                        writeSingleClass(cls.className, cls.classTeacher, cls.classLocation,
+                                week, cls.weekday, cls.nth, cls.isHalf, calID);
+                    }
+                    mainActivity.changeProgress("导出中", "正在导出" + cls.className + "(" + i + "/" + clsNum + ")");
+                    System.out.println(cls + " exported");
+                    ++i;
+                }
             }
-            cursor.close();
-        }
-        if (ifWriteExp) {
-            Cursor cursor = db.query("exp_table", null, null, null, null, null, null);
-            if (cursor.moveToFirst()) {
-                do {
-                    String name = cursor.getString(cursor.getColumnIndex("class_name"));
-                    String teacher = cursor.getString(cursor.getColumnIndex("class_teacher"));
-                    String location = cursor.getString(cursor.getColumnIndex("class_location"));
-                    Integer week = cursor.getInt(cursor.getColumnIndex("week"));
-                    Integer weekday = cursor.getInt(cursor.getColumnIndex("weekday"));
-                    Integer nth = cursor.getInt(cursor.getColumnIndex("nth"));
-                    Integer is_half = cursor.getInt(cursor.getColumnIndex("is_half"));
-                    writeSingleClass(name, teacher, location, week, weekday, nth, is_half, calID, ClassDatabase.TABLE_CONTENT_TYPE_EXP);
-                } while (cursor.moveToNext());
+            if (ifWriteExpe) {
+                Integer expeNum = classTable.expes.size();
+                int i = 1;
+                for (CustExpe expe : classTable.expes) {
+                    writeSingleClass(expe.expeName, "", expe.expeLocation,
+                            expe.expeWeek, expe.expeWeekday, expe.nth, false, calID);
+                    mainActivity.changeProgress("导出中", "正在导出" + expe.expeName + "(" + i + "/" + expeNum + ")");
+                    System.out.println(expe + " exported");
+                    ++i;
+                }
             }
-            cursor.close();
+
+            Message msg = new Message();
+            msg.what = 0;
+            mainActivity.progressHandler.sendMessage(msg);
+            if (ifWriteCls && ifWriteExpe) {
+                mainActivity.changeAlert("导出成功", "成功将课程与实验导出到日历");
+            } else if (ifWriteCls) {
+                mainActivity.changeAlert("导出成功", "成功将课程导出到日历");
+            } else {
+                mainActivity.changeAlert("导出成功", "成功将实验导出到日历");
+            }
+        } catch (Exception exp) {
+            Message msg = new Message();
+            msg.what = 0;
+            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.changeAlert("导出失败", "导出过程中发生了一些错误");
         }
     }
 
-    public void deleteSchdule(Boolean ifWriteCls, Boolean ifWriteExp) {
-        if (mainActivity.getPackageManager().PERMISSION_DENIED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
-            if (Build.VERSION.SDK_INT >= 23) {
-                ActivityCompat.requestPermissions(mainActivity, new String[] {Manifest.permission.WRITE_CALENDAR}, 1);
-            }
-            return;
-        }
-        SQLiteDatabase db = classDatabase.getWritableDatabase();
-        String calendarURL = "content://com.android.calendar/calendars";
-        String calID = "";
-        Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
-        userCursor.moveToFirst();
-        while (!userCursor.isAfterLast() && !"课表".equals(userCursor.getString(userCursor.getColumnIndex("name")))) {
-            userCursor.moveToNext();
-        }
-        if (userCursor.isAfterLast()) {
-            return;
-        } else {
-            calID = userCursor.getString(userCursor.getColumnIndex("_id"));
-        }
-        Uri eventUri = Uri.parse("content://com.android.calendar/events");
-        if (ifWriteCls) {
-            Cursor cursor = db.query("cls_id_table", null, null, null, null, null, null);
-            if (cursor.moveToFirst()) {
-                do {
-                    long id = cursor.getLong(cursor.getColumnIndex("id"));
-                    Uri deleteUri = ContentUris.withAppendedId(eventUri, id);
-                    mainActivity.getContentResolver().delete(deleteUri, null, null);
-                } while (cursor.moveToNext());
-            }
-            classDatabase.rebuild_cls_id_table();
-            cursor.close();
-        }
-        if (ifWriteExp) {
-            Cursor cursor = db.query("exp_id_table", null, null, null, null, null, null);
-            if (cursor.moveToFirst()) {
-                do {
-                    long id = cursor.getLong(cursor.getColumnIndex("id"));
-                    Uri deleteUri = ContentUris.withAppendedId(eventUri, id);
-                    mainActivity.getContentResolver().delete(deleteUri, null, null);
-                } while (cursor.moveToNext());
-            }
-            classDatabase.rebuild_exp_id_table();
-            cursor.close();
-        }
-        /*
-        while (cursor.moveToNext()) {
-            Uri deleteUri = ContentUris.withAppendedId(eventUri, cursor.getInt(0));
-            System.out.println("event " + cursor.getInt(0) + " deleted");
-            System.out.println(deleteUri.toString());
-            mainActivity.getContentResolver().delete(deleteUri, null, null);
-        }
-        */
-    }
 
-    public void deleteSchdule() {
-        SQLiteDatabase db = classDatabase.getWritableDatabase();
+    public void deleteSchedule() {
         String calendarURL = "content://com.android.calendar/calendars";
         String calID = "";
         Cursor userCursor = mainActivity.getContentResolver().query(Uri.parse(calendarURL), null, null, null, null);
@@ -465,11 +461,12 @@ public class CustStu {
             Uri deleteUri = ContentUris.withAppendedId(eventUri, cursor.getInt(0));
             mainActivity.getContentResolver().delete(deleteUri, null, null);
         }
-        classDatabase.rebuild_cls_id_table();
-        classDatabase.rebuild_exp_id_table();
+        Message msg = new Message();
+        msg.what = 0;
+        mainActivity.progressHandler.sendMessage(msg);
     }
 
-    public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, Integer is_half, String calID, int contentType) {
+    public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, boolean is_half, String calID) {
         Integer clsNum = 0;
         String calendarEventURL = "content://com.android.calendar/events";
         String calendarReminderURL = "content://com.android.calendar/reminders";
@@ -477,7 +474,7 @@ public class CustStu {
         Integer startMinute;
         Integer endHour;
         Integer endMinute;
-        if (is_half == 1) {
+        if (is_half) {
             startHour = STARTHOURS[nth * 2 - 1];
             startMinute = STARTMINUTES[nth * 2 - 1];
             endHour = ENDHOURS[nth * 2 - 1];
@@ -534,7 +531,6 @@ public class CustStu {
         if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
             Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
             long id = Long.parseLong(newEvent.getLastPathSegment());
-            classDatabase.insertId(id, contentType);
             ContentValues values = new ContentValues();
             values.put("event_id", id);
             values.put("minutes", 10);
