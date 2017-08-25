@@ -23,35 +23,53 @@ import com.vimsucks.custapp.util.CustStu;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+
 import static com.vimsucks.custapp.MyApp.stu;
 
 public class MainActivity extends AppCompatActivity {
 
-    ProgressDialog progressDialog;
-    public Handler progressHandler = new Handler() {
+    ProgressDialog exportProgressDialog;
+    public Handler exportProgressHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
-                    progressDialog.setTitle(((ArrayList<String>)msg.obj).get(0));
-                    progressDialog.setMessage(((ArrayList<String>)msg.obj).get(1));
-                    progressDialog.setCancelable(false);
+                    exportProgressDialog.setTitle(((ArrayList<String>)msg.obj).get(0));
+                    exportProgressDialog.setMessage(((ArrayList<String>)msg.obj).get(1));
+                    exportProgressDialog.setCancelable(false);
                     break;
                 case 0:
-                    progressDialog.hide();
+                    exportProgressDialog.hide();
                     break;
             }
         }
     };
 
-    public void changeProgress(String title, String message) {
+    public Handler toastHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Toast.makeText(MainActivity.this, msg.obj.toString(), Toast.LENGTH_LONG).show();
+        }
+    };
+
+    public Handler etCurrentWeekVisibilityHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            etCurrentWeek.setVisibility(msg.what);
+        }
+    };
+
+    public void updateExportProgress(String title, String message) {
         List<String> lst = new ArrayList<>();
         lst.add(title);
         lst.add(message);
         Message msg = new Message();
         msg.what = 1;
         msg.obj = lst;
-        progressHandler.sendMessage(msg);
+        exportProgressHandler.sendMessage(msg);
     }
 
     AlertDialog.Builder alertDialog;
@@ -77,19 +95,23 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    EditText stuID;
-    EditText password;
-    CheckBox ifExportCls;
-    CheckBox ifExportExpe;
+    @BindView(R.id.etStudentID) EditText etStudentId;
+    @BindView(R.id.etPassword) EditText etPassword;
+    @BindView(R.id.etCurrentWeek) EditText etCurrentWeek;
+    @BindView(R.id.cbExportCls) CheckBox cbExportCls;
+    @BindView(R.id.cbExportExp) CheckBox cbExportExpe;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initViews();
+
+        // bind views
+        ButterKnife.bind(this);
+
         alertDialog = new AlertDialog.Builder(MainActivity.this);
         stu = new CustStu(this);
-        progressDialog = new ProgressDialog(MainActivity.this);
+        exportProgressDialog = new ProgressDialog(MainActivity.this);
         if (getPackageManager().PERMISSION_DENIED == this.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, this.getPackageName())) {
             alertDialog.setTitle("权限请求");
             alertDialog.setMessage("本应用需要访问日历的权限以将课表写入日历，请赋予本应用权限");
@@ -107,15 +129,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void initViews() {
-        stuID = (EditText)findViewById(R.id.stuID);
-        password = (EditText)findViewById(R.id.password);
-        ifExportCls = (CheckBox)findViewById(R.id.if_export_cls);
-        ifExportExpe = (CheckBox)findViewById(R.id.if_export_expe);
-    }
-
-
-
+    @OnClick(R.id.btnLogin)
     public void onClick(View view) {
         if (getPackageManager().PERMISSION_DENIED == this.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, this.getPackageName())) {
             Toast.makeText(MainActivity.this, "请赋予本应用写入日历的权限", Toast.LENGTH_LONG).show();
@@ -123,27 +137,37 @@ public class MainActivity extends AppCompatActivity {
         }
 
         switch (view.getId()) {
-            case R.id.sign_in_button :
-                if (ifExportCls.isChecked() || ifExportExpe.isChecked()) {
-                    changeProgress("导出中", "登录中");
-                    progressDialog.show();
+            case R.id.btnLogin:
+                if (cbExportCls.isChecked() || cbExportExpe.isChecked()) {
+                    updateExportProgress("导出中", "登录中");
+                    exportProgressDialog.show();
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             CustStu stu = new CustStu(MainActivity.this);
-                            boolean temp = stu.login(stuID.getText().toString(), password.getText().toString());
-                            if (temp) {
-                                changeProgress("导出中", "正在获取课表");
-                                temp = stu.getClassTable();
-                                if (temp) {
-                                    changeProgress("导出中", "正在获取实验表");
-                                    temp = stu.getExpeTable();
-                                    if (temp) {
-                                        changeProgress("导出中", "正在获取当前周数");
-                                        temp = stu.getCurrentWeek();
-                                        if (temp) {
-                                            changeProgress("导出中", "正在导出到日历");
-                                            stu.writeSchedule(ifExportCls.isChecked(), ifExportExpe.isChecked());
+                            boolean loginSuccessfully = stu.login(etStudentId.getText().toString(), etPassword.getText().toString());
+                            if (loginSuccessfully) {
+                                updateExportProgress("导出中", "正在获取课表");
+                                boolean clsAcquired = stu.getClassTable();
+                                if (clsAcquired) {
+                                    updateExportProgress("导出中", "正在获取实验表");
+                                    boolean expAcquired = stu.getExpeTable();
+                                    if (expAcquired) {
+                                        updateExportProgress("导出中", "正在获取当前周数");
+                                        boolean currentWeekAcquired = stu.getCurrentWeek();
+                                        if (currentWeekAcquired) {
+                                            updateExportProgress("导出中", "正在导出到日历");
+                                            stu.writeSchedule(cbExportCls.isChecked(), cbExportExpe.isChecked());
+                                        } else {
+                                            Message msg = new Message();
+                                            msg.what = 0;
+                                            exportProgressHandler.sendMessage(msg);
+                                            msg = new Message();
+                                            msg.obj = "无法获取当前周数，请手动设置";
+                                            toastHandler.sendMessage(msg);
+                                            msg = new Message();
+                                            msg.what = View.VISIBLE;
+                                            etCurrentWeekVisibilityHandler.sendMessage(msg);
                                         }
                                     }
                                 }
@@ -178,8 +202,8 @@ public class MainActivity extends AppCompatActivity {
                     return false;
                 }
 
-                changeProgress("删除中", "正在删除先前导出的课表");
-                progressDialog.show();
+                updateExportProgress("删除中", "正在删除先前导出的课表");
+                exportProgressDialog.show();
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -188,8 +212,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).start();
                 break;
-            case R.id.action_exit:
-                finish();
         }
 
         return super.onOptionsItemSelected(item);

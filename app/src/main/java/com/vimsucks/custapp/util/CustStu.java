@@ -3,14 +3,10 @@ package com.vimsucks.custapp.util;
 import android.Manifest;
 import android.content.ContentUris;
 import android.content.ContentValues;
-import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Message;
 import android.provider.CalendarContract;
-import android.support.v4.app.ActivityCompat;
 import android.text.format.Time;
 import android.util.Log;
 
@@ -41,7 +37,6 @@ import okhttp3.Response;
 
 public class CustStu {
 
-
     public String username;
     private String password;
     private final ClassTable classTable = new ClassTable();
@@ -53,7 +48,7 @@ public class CustStu {
     private final Integer[] STARTMINUTES = new Integer[] {0, 0, 50, 55, 45, 30, 20, 25, 15, 0, 50, 45, 35};
     private final Integer[] ENDMINUTES = new Integer[] {0, 45, 35, 40, 30, 15, 5, 10, 0, 45, 35, 30, 20};
 
-    private static final String TAG = "CustStu";
+    private static final String TAG = CustStu.class.getName();
 
     public void setUsername(String username) {
         this.username = username;
@@ -89,6 +84,7 @@ public class CustStu {
                     return matchingCookies;
                 }
             })
+            .connectTimeout(10, TimeUnit.SECONDS)
             .build();
     private Request.Builder requestBuilder = new Request.Builder()
             .addHeader("User-Agent", "Mozilla/6.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36");
@@ -110,7 +106,7 @@ public class CustStu {
     public boolean login(String usrName, String passwd) {
         username = usrName;
         password = passwd;
-        Log.i(TAG, "login: try login username " + username + " password " + password);
+        Log.i(TAG, "login: try login username " + username);
         try {
             String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
@@ -150,8 +146,9 @@ public class CustStu {
                 Log.i(TAG, "login : login failed, maybe username & password incorrect");
                 Message msg = new Message();
                 msg.what = 0;
-                mainActivity.progressHandler.sendMessage(msg);
+                mainActivity.exportProgressHandler.sendMessage(msg);
                 mainActivity.changeAlert("登录失败", "登录失败，用户名密码错误");
+                Log.i(TAG, "log failed, username or password wrong");
                 return false;
             } else {
                 return true;
@@ -160,8 +157,9 @@ public class CustStu {
             Log.i(TAG, "login : login failed due to network error");
             Message msg = new Message();
             msg.what = 0;
-            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.exportProgressHandler.sendMessage(msg);
             mainActivity.changeAlert("登录失败", "登录失败,服务器炸啦");
+            Log.i(TAG, "log failed, server error");
             return false;
         }
     }
@@ -241,7 +239,7 @@ public class CustStu {
         } catch (IOException e) {
             Message msg = new Message();
             msg.what = 0;
-            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.exportProgressHandler.sendMessage(msg);
             mainActivity.changeAlert("获取课表失败", "获取课表失败,服务器炸啦");
             return false;
         }
@@ -276,7 +274,7 @@ public class CustStu {
             } catch (IOException e) {
                 Message msg = new Message();
                 msg.what = 0;
-                mainActivity.progressHandler.sendMessage(msg);
+                mainActivity.exportProgressHandler.sendMessage(msg);
                 mainActivity.changeAlert("获取实验课失败", "获取课表失败,服务器炸啦");
                 return false;
             }
@@ -284,7 +282,9 @@ public class CustStu {
 
 
     public boolean getCurrentWeek() {
+        boolean acquired;
         String schoolCalendarUrl = "http://jwgl.cust.edu.cn/teachweb/SchoolCalendar/Calendar.aspx";
+        Log.i(TAG, "trying to get current week");
         try {
             request = requestBuilder
                     .url(schoolCalendarUrl)
@@ -294,13 +294,14 @@ public class CustStu {
             String html = response.body().string();
             Document doc = Jsoup.parse(html);
             Elements trs = doc.getElementsByTag("tr");
+            // TODO error if 校历还未放出, fix this problem
             String temp = trs.get(4).getElementsByTag("td").get(1).text();
             int beginYear = Integer.parseInt(temp.split("年")[0]);
             String beginChineseMonth = temp.split("年")[1];
-            beginChineseMonth = beginChineseMonth.substring(0, beginChineseMonth.length()-1);
+            beginChineseMonth = beginChineseMonth.substring(0, beginChineseMonth.length() - 1);
             int beginMonth = 0;
             for (int i = 0; i < beginChineseMonth.length(); ++i) {
-                beginMonth += CustExpe.chineseMap.get(beginChineseMonth.substring(i, i+1));
+                beginMonth += CustExpe.chineseMap.get(beginChineseMonth.substring(i, i + 1));
             }
             int beginDay = Integer.parseInt(trs.get(4).getElementsByTag("td").get(2).text());
             Log.i(TAG, "Successfully fetch term begin year : " + beginYear);
@@ -314,16 +315,21 @@ public class CustStu {
             System.out.println(intervalDays);
             if (intervalDays == 0) {
                 currentWeek = 1;
-            } else if (intervalDays > 0){
-                currentWeek = (int)intervalDays / 7 + 1;
+            } else if (intervalDays > 0) {
+                currentWeek = (int) intervalDays / 7 + 1;
             } else {
-                currentWeek = (int)intervalDays / 7;
+                currentWeek = (int) intervalDays / 7;
             }
             Log.i(TAG, "Successfully fetch current week: " + currentWeek);
-            return true;
+            acquired = true;
+        } catch (IndexOutOfBoundsException e) {
+            acquired = false;
+            Log.i(TAG, "fail to get current week, calendar page not released");
         } catch (IOException e) {
-            return false;
+            acquired = false;
+            Log.i(TAG, "fail to get current week, io error");
         }
+        return acquired;
     }
 
 
@@ -403,7 +409,7 @@ public class CustStu {
                         writeSingleClass(cls.className, cls.classTeacher, cls.classLocation,
                                 week, cls.weekday, cls.nth, cls.isHalf, calID);
                     }
-                    mainActivity.changeProgress("导出中", "正在导出" + cls.className + "(" + i + "/" + clsNum + ")");
+                    mainActivity.updateExportProgress("导出中", "正在导出" + cls.className + "(" + i + "/" + clsNum + ")");
                     System.out.println(cls + " exported");
                     ++i;
                 }
@@ -414,7 +420,7 @@ public class CustStu {
                 for (CustExpe expe : classTable.expes) {
                     writeSingleClass(expe.expeName, "", expe.expeLocation,
                             expe.expeWeek, expe.expeWeekday, expe.nth, false, calID);
-                    mainActivity.changeProgress("导出中", "正在导出" + expe.expeName + "(" + i + "/" + expeNum + ")");
+                    mainActivity.updateExportProgress("导出中", "正在导出" + expe.expeName + "(" + i + "/" + expeNum + ")");
                     System.out.println(expe + " exported");
                     ++i;
                 }
@@ -422,7 +428,7 @@ public class CustStu {
 
             Message msg = new Message();
             msg.what = 0;
-            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.exportProgressHandler.sendMessage(msg);
             if (ifWriteCls && ifWriteExpe) {
                 mainActivity.changeAlert("导出成功", "成功将课程与实验导出到日历");
             } else if (ifWriteCls) {
@@ -433,7 +439,7 @@ public class CustStu {
         } catch (Exception exp) {
             Message msg = new Message();
             msg.what = 0;
-            mainActivity.progressHandler.sendMessage(msg);
+            mainActivity.exportProgressHandler.sendMessage(msg);
             mainActivity.changeAlert("导出失败", "导出过程中发生了一些错误");
         }
     }
@@ -463,7 +469,7 @@ public class CustStu {
         }
         Message msg = new Message();
         msg.what = 0;
-        mainActivity.progressHandler.sendMessage(msg);
+        mainActivity.exportProgressHandler.sendMessage(msg);
     }
 
     public void writeSingleClass(String name, String teacher, String location, Integer week, Integer weekday, Integer nth, boolean is_half, String calID) {

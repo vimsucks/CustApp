@@ -12,43 +12,77 @@
     tools:context="com.vimsucks.custapp.activities.MainActivity">
 
 
+    <android.support.design.widget.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-    <EditText
-        android:id="@+id/stuID"
+        <EditText
+            android:id="@+id/etStudentID"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/promptStudentId"
+            android:inputType="text"
+            android:maxLines="1"/>
+
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.design.widget.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/promptPassword"
+            android:inputType="textPassword"
+            android:maxLines="1"/>
+
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.design.widget.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/etCurrentWeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/promptCurrentWeek"
+            android:inputType="numberSigned"
+            android:visibility="gone"
+            android:maxLines="1"/>
+
+    </android.support.design.widget.TextInputLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/prompt_stuID"
-        android:inputType="text"
-        android:maxLines="1"/>
+        android:orientation="horizontal">
 
-    <EditText
-        android:id="@+id/password"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/prompt_password"
-        android:inputType="textPassword"
-        android:maxLines="1"/>
+        <CheckBox
+            android:id="@+id/cbExportCls"
+            android:text="@string/checkbox_export_cls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
 
-    <CheckBox
-        android:id="@+id/if_export_cls"
-        android:text="@string/checkbox_export_cls"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <CheckBox
+            android:id="@+id/cbExportExp"
+            android:text="@string/checkbox_export_expe"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
 
-    <CheckBox
-        android:id="@+id/if_export_expe"
-        android:text="@string/checkbox_export_expe"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+    </LinearLayout>
 
     <Button
-        android:id="@+id/sign_in_button"
+        android:id="@+id/btnLogin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/action_sign_in"
-        android:textStyle="bold"
-        android:onClick="onClick"/>
+        android:textStyle="bold" />
 
 </LinearLayout>
 

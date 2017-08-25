@@ -3,8 +3,9 @@
     <string name="title_activity_login">登录</string>
 
     <!-- Strings related to login -->
-    <string name="prompt_stuID">学号</string>
-    <string name="prompt_password">密码</string>
+    <string name="promptStudentId">学号</string>
+    <string name="promptPassword">密码</string>
+    <string name="promptCurrentWeek">当前周数</string>
     <string name="action_sign_in">开始导出</string>
     <string name="action_sign_in_short">开始导出</string>
     <string name="error_incorrect_password">密码错误</string>
