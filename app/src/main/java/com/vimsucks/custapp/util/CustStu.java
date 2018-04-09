@@ -39,9 +39,24 @@ public class CustStu {
 
     public String username;
     private String password;
+    private String studentName;
+    private String studentNo;
+    private String studentClass;
+    private String profession;
+    private int senior;
+    private Direction direction;
+    private ArrayList<Direction> availableDirections = new ArrayList<>();
+
     private final ClassTable classTable = new ClassTable();
     private Integer currentWeek;
     private static MainActivity mainActivity;
+
+    private String LOGIN_URL = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
+    private String CLASS_URL = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
+    private String EXPE_URL = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
+    private String PROFESSION_URL = "http://jwgl.cust.edu.cn/teachweb/jxjh/TeachPlanInfo.aspx?searchContent=0";
+    private String DIRECTION_CLASS_URL = "http://jwgl.cust.edu.cn/teachweb/kbcx/QueryLessonInfomation.aspx?queryMode=c";
+
     private final Integer[] MONTHDAYS = new Integer[] {31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
     private final Integer[] STARTHOURS = new Integer[] {0, 8, 8, 9, 10, 13, 14, 15, 16, 18, 18, 19, 20};
     private final Integer[] ENDHOURS = new Integer[] {0, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21};
@@ -50,14 +65,9 @@ public class CustStu {
 
     private static final String TAG = CustStu.class.getName();
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setStudentClass(String studentClass) {
+        this.studentClass = studentClass;
     }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
 
     private OkHttpClient httpClient = new OkHttpClient.Builder()
             .cookieJar(new CookieJar() {
@@ -108,9 +118,8 @@ public class CustStu {
         password = passwd;
         Log.i(TAG, "login: try login username " + username);
         try {
-            String loginUrl = "http://jwgl.cust.edu.cn/teachwebsl/login.aspx";
             request = requestBuilder
-                    .url(loginUrl)
+                    .url(LOGIN_URL)
                     .get()
                     .build();
             response = httpClient.newCall(request).execute();
@@ -127,7 +136,7 @@ public class CustStu {
                     .add("Button1", "登录")
                     .build();
             request = requestBuilder
-                    .url(loginUrl)
+                    .url(LOGIN_URL)
                     .post(formBody)
                     .build();
             response = httpClient.newCall(request).execute();
@@ -151,14 +160,22 @@ public class CustStu {
                 Log.i(TAG, "log failed, username or password wrong");
                 return false;
             } else {
+                setStudentName(doc.getElementById("StudentNameValueLabel").text());
+                setStudentNo(doc.getElementById("StudentNoValueLabel").text());
+                setStudentClass(doc.getElementById("ClassValueLabel").text());
+                setProfession(doc.getElementById("ProfessionValueLabel").text());
+                int admitYear = 2000 + Integer.valueOf(studentClass.substring(0, 2));
+                int year = Calendar.getInstance().get(Calendar.YEAR);
+                setSenior(year - admitYear + 1);
                 return true;
             }
         } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
             Log.i(TAG, "login : login failed due to network error");
             Message msg = new Message();
             msg.what = 0;
             mainActivity.exportProgressHandler.sendMessage(msg);
-            mainActivity.changeAlert("登录失败", "登录失败,服务器炸啦");
+            mainActivity.changeAlert("登录失败", "登录失败,服务器或者网络炸啦");
             Log.i(TAG, "log failed, server error");
             return false;
         }
@@ -177,10 +194,9 @@ public class CustStu {
      * @return true If successfully getting class table
      */
     public boolean getClassTable() {
-        String classUrl = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptPersonalCourses.aspx?role=student";
         try {
             request = requestBuilder
-                    .url(classUrl)
+                    .url(CLASS_URL)
                     .get()
                     .build();
             response = httpClient.newCall(request).execute();
@@ -240,17 +256,16 @@ public class CustStu {
             Message msg = new Message();
             msg.what = 0;
             mainActivity.exportProgressHandler.sendMessage(msg);
-            mainActivity.changeAlert("获取课表失败", "获取课表失败,服务器炸啦");
+            mainActivity.changeAlert("获取课表失败", "获取课表失败,服务器或者网络炸啦");
             return false;
         }
     }
 
 
     public boolean getExpeTable() {
-            String expeUrl = "http://jwgl.cust.edu.cn/teachweb/syyy/EBCousesQuery.aspx";
             try {
                 request = requestBuilder
-                        .url(expeUrl)
+                        .url(EXPE_URL)
                         .get()
                         .build();
                 response = httpClient.newCall(request).execute();
@@ -275,11 +290,94 @@ public class CustStu {
                 Message msg = new Message();
                 msg.what = 0;
                 mainActivity.exportProgressHandler.sendMessage(msg);
-                mainActivity.changeAlert("获取实验课失败", "获取课表失败,服务器炸啦");
+                mainActivity.changeAlert("获取实验课失败", "获取课表失败,服务器或者网络炸啦");
                 return false;
             }
     }
 
+    public boolean parseDirections() {
+        boolean ok = false;
+
+        request = requestBuilder
+                .url(PROFESSION_URL)
+                .get()
+                .build();
+        Response response;
+        try {
+            response = httpClient.newCall(request).execute();
+            String html = response.body().string();
+            response.body().close();
+            Document doc = Jsoup.parse(html);
+            Element proDirectionEle = doc.select("td:contains(专业方向)").first();
+            int rowspan = Integer.valueOf(proDirectionEle.attr("rowspan"));
+            Element tr = proDirectionEle.parent();
+            // the first tr need to be special handled cause the first td within it is not needed
+            Elements tds = tr.children();
+            tds.remove(0);
+            Direction di = null;
+            for (int i = 0; i < rowspan; ++i) {
+                if (tds.size() >= 17) {
+                    if (di != null) {
+                        availableDirections.add(di);
+                    }
+                    di = new Direction();
+                    di.setName(tds.get(0).text().trim());
+                    di.getClasses().add(tds.get(3).text().trim());
+                } else {
+                    di.getClasses().add(tds.get(1).text().trim());
+                }
+                tr = tr.nextElementSibling();
+                tds = tr.children();
+            }
+
+            availableDirections.add(di);
+
+            Log.d(TAG, "There is " + availableDirections.size() + " directions");
+            for (Direction p : availableDirections) {
+                Log.d(TAG, p.toString());
+            }
+            ok = true;
+        } catch (IOException ex) {
+            ok = false;
+        }
+
+        return  ok;
+    }
+
+    public boolean parseDirectionClasses() {
+        boolean ok = false;
+
+        request = requestBuilder
+                .url(DIRECTION_CLASS_URL)
+                .get()
+                .build();
+        Response response;
+        try {
+            Response res = httpClient.newCall(request).execute();
+            String html = res.body().string();
+            res.body().close();
+            Document doc = Jsoup.parse(html);
+            String year = doc.getElementById("YearDropDownList").val();
+            String url = "http://jwgl.cust.edu.cn/teachweb/kbcx/Report/wfmRptLessonByClass.aspx?year="+ year + "&classInfoName=" + getStudentClass();
+            Log.d(TAG, "班级课表打印URL: " + url);
+            request = requestBuilder
+                    .url(url)
+                    .get()
+                    .build();
+            res = httpClient.newCall(request).execute();
+            html = res.body().string();
+            res.body().close();
+            doc = Jsoup.parse(html);
+        } catch (IOException ex) {
+            Message msg = new Message();
+            msg.what = 0;
+            mainActivity.exportProgressHandler.sendMessage(msg);
+            mainActivity.changeAlert("获取方向课失败", "获取方向失败,服务器或者网络炸啦");
+
+            ok = false;
+        }
+        return ok;
+    }
 
     public boolean getCurrentWeek() {
         boolean acquired;
@@ -440,7 +538,7 @@ public class CustStu {
             Message msg = new Message();
             msg.what = 0;
             mainActivity.exportProgressHandler.sendMessage(msg);
-            mainActivity.changeAlert("导出失败", "导出过程中发生了一些错误");
+            mainActivity.changeAlert("导出失败", "导出过程中发生了一些错误: " + exp);
         }
     }
 
@@ -532,7 +630,8 @@ public class CustStu {
         long end = calendar.getTime().getTime();
         event.put(CalendarContract.Events.DTSTART, start);
         event.put(CalendarContract.Events.DTEND, end);
-        event.put(CalendarContract.Events.HAS_ALARM, 1);
+        // disable alarm
+        event.put(CalendarContract.Events.HAS_ALARM, 0);
         event.put(CalendarContract.Events.EVENT_TIMEZONE, Time.getCurrentTimezone());
         if (mainActivity.getPackageManager().PERMISSION_GRANTED == mainActivity.getPackageManager().checkPermission(Manifest.permission.WRITE_CALENDAR, mainActivity.getPackageName())) {
             Uri newEvent = mainActivity.getContentResolver().insert(CalendarContract.Events.CONTENT_URI, event);
@@ -550,4 +649,67 @@ public class CustStu {
         classTable.logAll();
     }
 
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getStudentName() {
+        return studentName;
+    }
+
+    public void setStudentName(String studentName) {
+        this.studentName = studentName;
+    }
+
+    public String getStudentNo() {
+        return studentNo;
+    }
+
+    public void setStudentNo(String studentNo) {
+        this.studentNo = studentNo;
+    }
+
+    public String getStudentClass() {
+        return studentClass;
+    }
+
+    public String getProfession() {
+        return profession;
+    }
+
+    public void setProfession(String profession) {
+        this.profession = profession;
+    }
+
+    public int getSenior() {
+        return senior;
+    }
+
+    public void setSenior(int senior) {
+        this.senior = senior;
+    }
+
+    public Direction getDirection() {
+        return direction;
+    }
+
+    public void setDirection(int i) {
+        this.direction = availableDirections.get(i);
+    }
+
+    public ArrayList<Direction> getAvailableDirections() {
+        return availableDirections;
+    }
 }

@@ -2,10 +2,13 @@
     <string name="app_name">长理课表导出器</string>
     <string name="title_activity_login">登录</string>
 
+    <string name="saved_username">username</string>
+    <string name="saved_password">password</string>
+
     <!-- Strings related to login -->
     <string name="promptStudentId">学号</string>
     <string name="promptPassword">密码</string>
-    <string name="promptCurrentWeek">当前周数</string>
+    <string name="promptCurrentWeek">当前周数（开学前一周请输入0，开学前二周输入-1，以此类推）</string>
     <string name="action_sign_in">开始导出</string>
     <string name="action_sign_in_short">开始导出</string>
     <string name="error_incorrect_password">密码错误</string>
